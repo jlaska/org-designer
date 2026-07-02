@@ -152,6 +152,18 @@ export function ConfigPanel() {
         <option value="totalReports">Total Reports</option>
       </select>
 
+      <SectionHeader label="Max Per Row" />
+      <SegmentControl<string>
+        value={String(config.maxChildrenPerRow)}
+        options={[
+          { value: '0', label: 'Auto' },
+          { value: '4', label: '4' },
+          { value: '6', label: '6' },
+          { value: '8', label: '8' },
+        ]}
+        onChange={(v) => setConfig({ maxChildrenPerRow: Number(v) })}
+      />
+
       <SectionHeader label="Grid" />
       <Toggle
         label="Snap to Grid"
