@@ -80,6 +80,7 @@ export interface ConfigState {
   density: CardDensity
   direction: LayoutDirection
   snapToGrid: boolean
+  groupManagersFirst: boolean
 }
 
 export interface UIState {
@@ -183,6 +184,7 @@ const defaultConfig: ConfigState = {
   density: 'default',
   direction: 'TB',
   snapToGrid: true,
+  groupManagersFirst: false,
 }
 
 function computeEffective(baseline: BaselineData, overlay: Overlay): EffectiveState {

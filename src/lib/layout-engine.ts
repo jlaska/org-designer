@@ -89,6 +89,9 @@ export function computeLayout(
 
     // Collect children; if any child has "hide peers" active, show only that child
     const children = Object.entries(state.people).filter(([, p]) => p.managerUid === uid)
+    if (config?.groupManagersFirst) {
+      children.sort(([, a], [, b]) => (b.directReports > 0 ? 1 : 0) - (a.directReports > 0 ? 1 : 0))
+    }
     const focusedChild = children.find(([childUid]) => hiddenPeersOf.has(childUid))
     const visibleChildren = focusedChild ? [focusedChild] : children
     for (const [childUid] of visibleChildren) {

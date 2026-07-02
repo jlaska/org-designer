@@ -130,6 +130,13 @@ export function ConfigPanel() {
         onChange={(direction) => setConfig({ direction })}
       />
 
+      <SectionHeader label="Ordering" />
+      <Toggle
+        label="Group Managers First"
+        checked={config.groupManagersFirst}
+        onChange={(v) => setConfig({ groupManagersFirst: v })}
+      />
+
       <SectionHeader label="Grid" />
       <Toggle
         label="Snap to Grid"

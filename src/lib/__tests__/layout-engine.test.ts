@@ -60,7 +60,13 @@ describe('getNodeDims', () => {
   it('always returns NODE_WIDTH', () => {
     expect(getNodeDims().w).toBe(NODE_WIDTH)
     expect(
-      getNodeDims({ cardFields: allOn, density: 'compact', direction: 'TB', snapToGrid: true }).w,
+      getNodeDims({
+        cardFields: allOn,
+        density: 'compact',
+        direction: 'TB',
+        snapToGrid: true,
+        groupManagersFirst: false,
+      }).w,
     ).toBe(NODE_WIDTH)
   })
 
@@ -70,6 +76,7 @@ describe('getNodeDims', () => {
       density: 'compact' as const,
       direction: 'TB' as const,
       snapToGrid: true,
+      groupManagersFirst: false,
     }
     expect(getNodeDims(config).h).toBe(computeNodeHeight(allOn))
   })
