@@ -245,7 +245,8 @@ def main():
             else:
                 country_geocoded += 1
 
-    print(f"Total: {total} users, {geocoded} geocoded ({geocoded*100//total}%)", file=sys.stderr)
+    pct = geocoded * 100 // total if total else 0
+    print(f"Total: {total} users, {geocoded} geocoded ({pct}%)", file=sys.stderr)
     print(f"  - City-level: {city_geocoded}", file=sys.stderr)
     print(f"  - Country-level: {country_geocoded}", file=sys.stderr)
     print(f"  - Not geocoded: {total - geocoded}", file=sys.stderr)
