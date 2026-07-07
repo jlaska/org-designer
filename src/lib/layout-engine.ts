@@ -89,9 +89,6 @@ export function computeLayout(
 
     // Collect children; if any child has "hide peers" active, show only that child
     const children = Object.entries(state.people).filter(([, p]) => p.managerUid === uid)
-    if (config?.groupManagersFirst) {
-      children.sort(([, a], [, b]) => (b.directReports > 0 ? 1 : 0) - (a.directReports > 0 ? 1 : 0))
-    }
     const focusedChild = children.find(([childUid]) => hiddenPeersOf.has(childUid))
     const visibleChildren = focusedChild ? [focusedChild] : children
     for (const [childUid] of visibleChildren) {
@@ -154,6 +151,86 @@ export function computeLayout(
   }
 
   dagre.layout(g)
+
+  // Post-layout sort: reorder siblings by the selected attribute
+  const sortBy = config?.sortLayerBy ?? 'none'
+  if (sortBy !== 'none') {
+    const childrenMap = new Map<string, string[]>()
+    for (const uid of visiblePersonIds) {
+      const mgr = state.people[uid]?.managerUid
+      if (mgr && visiblePersonIds.has(mgr)) {
+        if (!childrenMap.has(mgr)) childrenMap.set(mgr, [])
+        childrenMap.get(mgr)!.push(uid)
+      }
+    }
+
+    const isLR = direction === 'LR'
+    const crossStep = isLR ? nodeHeight + gap : NODE_WIDTH + gap
+
+    function getDescendantIds(root: string): string[] {
+      const ids: string[] = []
+      const q = [root]
+      while (q.length > 0) {
+        const id = q.shift()!
+        ids.push(id)
+        const ch = childrenMap.get(id)
+        if (ch) q.push(...ch)
+      }
+      return ids
+    }
+
+    const SORT_FIELD: Record<string, keyof (typeof state.people)[string]> = {
+      name: 'cn',
+      jobRole: 'jobRole',
+      jobTitle: 'jobTitle',
+      geo: 'geo',
+      country: 'co',
+    }
+
+    function comparePeople(a: string, b: string): number {
+      if (sortBy === 'managerStatus') {
+        const aIsManager = (state.people[a]?.directReports ?? 0) > 0 ? 0 : 1
+        const bIsManager = (state.people[b]?.directReports ?? 0) > 0 ? 0 : 1
+        return aIsManager - bIsManager
+      }
+      const field = SORT_FIELD[sortBy]
+      const va = String(state.people[a]?.[field] ?? '')
+      const vb = String(state.people[b]?.[field] ?? '')
+      return va.localeCompare(vb)
+    }
+
+    for (const [parentUid, kids] of childrenMap) {
+      if (kids.length < 2) continue
+
+      const parentNode = g.node(parentUid)
+      if (!parentNode) continue
+      const parentCross = isLR ? parentNode.y : parentNode.x
+      const crossSize = isLR ? nodeHeight : NODE_WIDTH
+
+      kids.sort(comparePeople)
+
+      // Redistribute evenly, centered on the parent
+      const totalCross = kids.length * crossStep - gap
+      const startCross = parentCross - totalCross / 2 + crossSize / 2
+
+      for (let i = 0; i < kids.length; i++) {
+        const kid = kids[i]
+        const kidNode = g.node(kid)
+        const newCross = startCross + i * crossStep
+        const oldCross = isLR ? kidNode.y : kidNode.x
+        const delta = newCross - oldCross
+        if (delta === 0) continue
+
+        for (const descId of getDescendantIds(kid)) {
+          const desc = g.node(descId)
+          if (desc) {
+            if (isLR) desc.y += delta
+            else desc.x += delta
+          }
+        }
+      }
+    }
+  }
 
   const nodes: Node[] = []
   const edges: Edge[] = []

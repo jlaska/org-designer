@@ -1,5 +1,5 @@
 import { useAppStore } from '@/store'
-import type { CardDensity, LayoutDirection } from '@/store'
+import type { CardDensity, LayoutDirection, SortLayerBy } from '@/store'
 
 function Toggle({
   label,
@@ -120,22 +120,34 @@ export function ConfigPanel() {
         onChange={(density) => setConfig({ density })}
       />
 
-      <SectionHeader label="Layout Direction" />
-      <SegmentControl<LayoutDirection>
-        value={config.direction}
-        options={[
-          { value: 'TB', label: 'Vertical' },
-          { value: 'LR', label: 'Horizontal' },
-        ]}
-        onChange={(direction) => setConfig({ direction })}
-      />
-
-      <SectionHeader label="Ordering" />
-      <Toggle
-        label="Group Managers First"
-        checked={config.groupManagersFirst}
-        onChange={(v) => setConfig({ groupManagersFirst: v })}
-      />
+      <SectionHeader label="Layout" />
+      <div className="flex items-center justify-between py-1.5">
+        <span className="text-sm text-gray-700">Direction</span>
+        <SegmentControl<LayoutDirection>
+          value={config.direction}
+          options={[
+            { value: 'TB', label: 'Vertical' },
+            { value: 'LR', label: 'Horizontal' },
+          ]}
+          onChange={(direction) => setConfig({ direction })}
+        />
+      </div>
+      <div className="flex items-center justify-between py-1.5">
+        <span className="text-sm text-gray-700">Sort</span>
+        <select
+          value={config.sortLayerBy}
+          onChange={(e) => setConfig({ sortLayerBy: e.target.value as SortLayerBy })}
+          className="rounded border border-gray-200 bg-white px-2 py-1 text-xs text-gray-600"
+        >
+          <option value="none">None</option>
+          <option value="name">Name</option>
+          <option value="jobRole">Job Role</option>
+          <option value="jobTitle">Job Title</option>
+          <option value="geo">Geo</option>
+          <option value="country">Country</option>
+          <option value="managerStatus">Manager Status</option>
+        </select>
+      </div>
 
       <SectionHeader label="Grid" />
       <Toggle
