@@ -50,7 +50,7 @@ def parse_ldif(ldif_text):
                 users.append(current_user)
 
             # Check if this is a user entry
-            if 'uid=' in line and 'ou=users' in line:
+            if 'uid=' in line and ('ou=users' in line or 'cn=users' in line):
                 current_user = {'dn': line[3:].strip()}
                 current_uid = None
             else:

@@ -66,3 +66,16 @@ export function computeExcludedIds(
   }
   return visibleIds
 }
+
+/** Visible person IDs for include/exclude filter modes (undefined = highlight/all visible). */
+export function computeFilterVisibleIds(
+  people: Record<string, PersonRecord>,
+  filters: FilterState,
+): Set<string> | undefined {
+  if (!hasActiveFilters(filters) || filters.mode === 'highlight') return undefined
+  if (filters.mode === 'include') {
+    const { matchIds, ancestorIds } = computeFilteredIds(people, filters)
+    return new Set([...matchIds, ...ancestorIds])
+  }
+  return computeExcludedIds(people, filters)
+}

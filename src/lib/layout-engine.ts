@@ -55,6 +55,37 @@ export interface OrgTreeNode {
   data: Record<string, unknown>
 }
 
+/** Person IDs currently rendered on the chart (respects expand/collapse, peers, filters). */
+export function getVisiblePersonIds(
+  state: EffectiveState,
+  expandedNodes: Set<string>,
+  rootUid: string,
+  hiddenPeersOf: Set<string> = new Set(),
+  filterVisibleIds?: Set<string>,
+): Set<string> {
+  const visiblePersonIds = new Set<string>()
+  const queue: string[] = [rootUid]
+  visiblePersonIds.add(rootUid)
+
+  while (queue.length > 0) {
+    const uid = queue.shift()!
+    if (!expandedNodes.has(uid)) continue
+
+    const children = Object.entries(state.people).filter(([, p]) => p.managerUid === uid)
+    const focusedChild = children.find(([childUid]) => hiddenPeersOf.has(childUid))
+    const visibleChildren = focusedChild ? [focusedChild] : children
+    for (const [childUid] of visibleChildren) {
+      if (filterVisibleIds && !filterVisibleIds.has(childUid)) continue
+      if (!visiblePersonIds.has(childUid)) {
+        visiblePersonIds.add(childUid)
+        queue.push(childUid)
+      }
+    }
+  }
+
+  return visiblePersonIds
+}
+
 export function computeLayout(
   state: EffectiveState,
   expandedNodes: Set<string>,
@@ -76,33 +107,20 @@ export function computeLayout(
   g.setGraph({ rankdir: direction, nodesep: gap, ranksep: rankGap, marginx: 20, marginy: 20 })
   g.setDefaultEdgeLabel(() => ({}))
 
-  const visiblePersonIds = new Set<string>()
+  const visiblePersonIds = getVisiblePersonIds(
+    state,
+    expandedNodes,
+    rootUid,
+    hiddenPeersOf,
+    filterVisibleIds,
+  )
   const visibleScopeIds = new Set<string>()
 
-  // BFS: only include children of expanded nodes
-  const queue: string[] = [rootUid]
-  visiblePersonIds.add(rootUid)
-
-  while (queue.length > 0) {
-    const uid = queue.shift()!
+  // Scope nodes attach to expanded visible managers
+  for (const uid of visiblePersonIds) {
     if (!expandedNodes.has(uid)) continue
-
-    // Collect children; if any child has "hide peers" active, show only that child
-    const children = Object.entries(state.people).filter(([, p]) => p.managerUid === uid)
-    const focusedChild = children.find(([childUid]) => hiddenPeersOf.has(childUid))
-    const visibleChildren = focusedChild ? [focusedChild] : children
-    for (const [childUid] of visibleChildren) {
-      if (filterVisibleIds && !filterVisibleIds.has(childUid)) continue
-      if (!visiblePersonIds.has(childUid)) {
-        visiblePersonIds.add(childUid)
-        queue.push(childUid)
-      }
-    }
-
     for (const [scopeId, scope] of Object.entries(state.scopeNodes)) {
-      if (scope.managerUid === uid) {
-        visibleScopeIds.add(scopeId)
-      }
+      if (scope.managerUid === uid) visibleScopeIds.add(scopeId)
     }
   }
 

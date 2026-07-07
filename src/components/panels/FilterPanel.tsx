@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { useAppStore } from '@/store'
-import { ROLE_LABELS } from '@/lib/role-colors'
+import { roleColor, uniqueJobRoles } from '@/lib/role-colors'
 import { teamColor } from '@/lib/team-colors'
 
 export function FilterPanel() {
@@ -12,8 +12,9 @@ export function FilterPanel() {
 
   const [titleSearch, setTitleSearch] = useState('')
 
-  const { geos, countries, teams, allJobTitles } = useMemo(() => {
-    if (!effectiveState) return { geos: [], countries: [], teams: [], allJobTitles: [] }
+  const { geos, countries, teams, allJobTitles, jobRoles } = useMemo(() => {
+    if (!effectiveState)
+      return { geos: [], countries: [], teams: [], allJobTitles: [], jobRoles: [] }
     const people = Object.values(effectiveState.people)
     const teamIds = [...new Set(people.map((p) => p.teamId).filter(Boolean) as string[])]
     return {
@@ -23,6 +24,7 @@ export function FilterPanel() {
         .map((id) => ({ id, name: effectiveState.teams[id]?.name ?? id }))
         .sort((a, b) => a.name.localeCompare(b.name)),
       allJobTitles: [...new Set(people.map((p) => p.jobTitle).filter(Boolean))].sort(),
+      jobRoles: uniqueJobRoles(people).filter((r) => r !== 'Unknown'),
     }
   }, [effectiveState])
 
@@ -156,9 +158,10 @@ export function FilterPanel() {
       {/* Job Role */}
       <div>
         <div className="mb-1.5 text-xs text-gray-500">Job Role</div>
-        <div className="flex flex-wrap gap-1">
-          {ROLE_LABELS.filter((r) => r.role !== 'Unknown').map(({ role, color }) => {
+        <div className="flex max-h-32 flex-wrap gap-1 overflow-y-auto">
+          {jobRoles.map((role) => {
             const active = filters.jobRoles.includes(role)
+            const color = roleColor(role)
             return (
               <button
                 key={role}

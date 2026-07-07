@@ -20,7 +20,7 @@ import { OrgChartEdge } from './OrgChartEdge'
 import { DeleteConfirmDialog } from '@/components/dialogs/DeleteConfirmDialog'
 import { useAppStore } from '@/store'
 import { computeLayout, getNodeDims } from '@/lib/layout-engine'
-import { computeExcludedIds, computeFilteredIds, hasActiveFilters } from '@/lib/filter-utils'
+import { computeFilterVisibleIds, computeFilteredIds, hasActiveFilters } from '@/lib/filter-utils'
 import { getSubtreeIds } from '@/lib/hierarchy-utils'
 import type { MoveAction } from '@/types/overlay'
 import { ScanSearch } from 'lucide-react'
@@ -179,16 +179,10 @@ function OrgChartInner() {
     }
   }, [requestDelete, navigateByKey])
 
-  const filterVisibleIds = useMemo(() => {
-    if (!effectiveState || !hasActiveFilters(filters) || filters.mode === 'highlight')
-      return undefined
-    if (filters.mode === 'include') {
-      const { matchIds, ancestorIds } = computeFilteredIds(effectiveState.people, filters)
-      return new Set([...matchIds, ...ancestorIds])
-    }
-    // exclude mode: remove matching subtrees, keep everyone else
-    return computeExcludedIds(effectiveState.people, filters)
-  }, [effectiveState, filters])
+  const filterVisibleIds = useMemo(
+    () => (effectiveState ? computeFilterVisibleIds(effectiveState.people, filters) : undefined),
+    [effectiveState, filters],
+  )
 
   const layoutResult = useMemo(() => {
     if (!effectiveState || !baseline) return { nodes: [], edges: [] }

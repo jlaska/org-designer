@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { useAppStore } from '@/store'
-import { ROLE_LABELS } from '@/lib/role-colors'
+import { uniqueJobRoles } from '@/lib/role-colors'
 import type { AddPersonAction, EditPersonAction, OverlayAction } from '@/types/overlay'
 import type { PersonRecord } from '@/types/person'
 
@@ -17,9 +17,16 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
   const pushActions = useAppStore((s) => s.pushActions)
   const isEdit = !!editPerson
 
+  const jobRoles = useMemo(() => {
+    if (!effectiveState) return ['Unknown']
+    return uniqueJobRoles(Object.values(effectiveState.people))
+  }, [effectiveState])
+
+  const defaultRole = editPerson?.jobRole ?? jobRoles[0] ?? 'Unknown'
+
   const [name, setName] = useState(editPerson?.cn ?? '')
-  const [role, setRole] = useState(editPerson?.jobRole ?? ROLE_LABELS[0].role)
-  const [title, setTitle] = useState(editPerson?.jobTitle ?? ROLE_LABELS[0].role)
+  const [role, setRole] = useState(defaultRole)
+  const [title, setTitle] = useState(editPerson?.jobTitle ?? defaultRole)
   const [geo, setGeo] = useState(editPerson?.geo ?? '')
   const [country, setCountry] = useState(editPerson?.co ?? '')
   const [count, setCount] = useState(1)
@@ -151,11 +158,13 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
 
           <Field label="Role">
             <select value={role} onChange={(e) => setRole(e.target.value)} className="input-base">
-              {ROLE_LABELS.filter((r) => r.role !== 'Unknown').map(({ role: r }) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
+              {jobRoles
+                .filter((r) => r !== 'Unknown')
+                .map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
             </select>
           </Field>
 

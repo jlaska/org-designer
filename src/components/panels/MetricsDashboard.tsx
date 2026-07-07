@@ -1,6 +1,6 @@
 import { useDeferredValue, useMemo } from 'react'
 import { useAppStore } from '@/store'
-import { ROLE_LABELS } from '@/lib/role-colors'
+import { roleColor } from '@/lib/role-colors'
 import { teamColor } from '@/lib/team-colors'
 import { buildChildrenMap, getSubtreePeople } from '@/lib/hierarchy-utils'
 import { roleAbbreviation } from '@/lib/role-abbreviation'
@@ -183,13 +183,13 @@ export function MetricsDashboard() {
         </Section>
 
         <Section title="By Role">
-          {ROLE_LABELS.filter(({ role }) => metrics.byRole[role] > 0).map(({ role, color }) => (
+          {capEntries(metrics.byRole).map(([role, count]) => (
             <Bar
               key={role}
               label={role}
-              count={metrics.byRole[role] ?? 0}
+              count={count}
               total={metrics.total}
-              color={color}
+              color={roleColor(role)}
             />
           ))}
         </Section>

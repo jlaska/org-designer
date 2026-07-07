@@ -3,9 +3,13 @@ import {
   computeLayout,
   computeNodeHeight,
   getNodeDims,
+  getVisiblePersonIds,
   NODE_WIDTH,
   NODE_HEIGHT_BASE,
 } from '@/lib/layout-engine'
+import { applyOverlay } from '@/lib/overlay-engine'
+import { makeBaseline } from '@/test/fixtures'
+import { emptyOverlay } from '@/types/overlay'
 import type { EffectiveState } from '@/types/org'
 import type { PersonRecord } from '@/types/person'
 import type { ConfigState } from '@/store'
@@ -88,6 +92,31 @@ describe('getNodeDims', () => {
       sortLayerBy: 'none' as const,
     }
     expect(getNodeDims(config).h).toBe(computeNodeHeight(allOn))
+  })
+})
+
+describe('getVisiblePersonIds', () => {
+  it('returns only root when subtree is collapsed', () => {
+    const baseline = makeBaseline()
+    const state = applyOverlay(baseline, emptyOverlay())
+    const visible = getVisiblePersonIds(state, new Set(), 'ceo')
+    expect([...visible]).toEqual(['ceo'])
+  })
+
+  it('includes expanded descendants only', () => {
+    const baseline = makeBaseline()
+    const state = applyOverlay(baseline, emptyOverlay())
+    const expanded = new Set(['ceo', 'vp1'])
+    const visible = getVisiblePersonIds(state, expanded, 'ceo')
+    expect([...visible].sort()).toEqual(['ceo', 'vp1', 'vp2', 'mgr1', 'ic1'].sort())
+  })
+
+  it('excludes collapsed branches below expanded root', () => {
+    const baseline = makeBaseline()
+    const state = applyOverlay(baseline, emptyOverlay())
+    const visible = getVisiblePersonIds(state, new Set(['ceo']), 'ceo')
+    expect([...visible].sort()).toEqual(['ceo', 'vp1', 'vp2'].sort())
+    expect(visible.has('mgr1')).toBe(false)
   })
 })
 

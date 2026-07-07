@@ -189,7 +189,15 @@ export function Toolbar() {
     if (!el) return
 
     if (format === 'png' || format === 'pdf') {
-      const dataUrl = await toPng(el, { backgroundColor: '#f8fafc' })
+      const dataUrl = await toPng(el, {
+        pixelRatio: 3,
+        backgroundColor: undefined,
+        filter: (node) => {
+          if (!(node instanceof HTMLElement)) return true
+          const cl = node.classList
+          return !cl.contains('react-flow__minimap') && !cl.contains('react-flow__controls')
+        },
+      })
       if (format === 'png') {
         download(dataUrl, `org-${currentScenarioName}.png`)
       } else {
