@@ -6,6 +6,7 @@ export function OrgChartEdge({ sourceX, sourceY, targetX, targetY, style, data }
     gridBusPos?: number
     gridSpineX?: number
     gridSpineY?: number
+    highlighted?: boolean
   }
   const isLR = edgeData?.direction === 'LR'
 
@@ -24,12 +25,17 @@ export function OrgChartEdge({ sourceX, sourceY, targetX, targetY, style, data }
     d = `M${sourceX},${sourceY} V${midY} H${targetX} V${targetY}`
   }
 
+  const highlighted = edgeData?.highlighted === true
+  const stroke = highlighted ? '#2563eb' : ((style?.stroke as string) ?? '#94a3b8')
+  const strokeWidth = highlighted ? 2.5 : ((style?.strokeWidth as number) ?? 1.5)
+
   return (
     <path
       d={d}
       fill="none"
-      stroke={(style?.stroke as string) ?? '#94a3b8'}
-      strokeWidth={(style?.strokeWidth as number) ?? 1.5}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+      style={highlighted ? { zIndex: 1 } : undefined}
     />
   )
 }
