@@ -1,5 +1,5 @@
 import { useAppStore } from '@/store'
-import type { CardDensity, LayoutDirection, SortLayerBy } from '@/store'
+import type { CardDensity, LayoutDirection, MaxChildrenPerRow, SortLayerBy } from '@/store'
 
 function Toggle({
   label,
@@ -161,7 +161,7 @@ export function ConfigPanel() {
           { value: '6', label: '6' },
           { value: '8', label: '8' },
         ]}
-        onChange={(v) => setConfig({ maxChildrenPerRow: Number(v) })}
+        onChange={(v) => setConfig({ maxChildrenPerRow: Number(v) as MaxChildrenPerRow })}
       />
 
       <SectionHeader label="Grid" />

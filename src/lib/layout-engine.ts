@@ -254,7 +254,7 @@ export function computeLayout(
     }
   }
 
-  // Post-process: reflow children into a grid when maxChildrenPerRow is set
+  // Grid reflow supersedes sort positions for parents exceeding maxPerRow
   const maxPerRow = config?.maxChildrenPerRow ?? 0
   const gridChildren = new Set<string>()
   const gridBusPos = new Map<string, number>()
@@ -266,20 +266,21 @@ export function computeLayout(
     // Process parents top-down so all of a parent's grid rows are placed
     // compactly before any child subtree expands below them.
     const parentsToReflow = [...childrenMap.entries()].filter(([, kids]) => kids.length > maxPerRow)
-    parentsToReflow.sort(([a], [b]) => {
-      const depthOf = (uid: string) => {
-        let d = 0
-        let cur = uid
-        while (true) {
-          const mgr = state.people[cur]?.managerUid
-          if (!mgr || !visiblePersonIds.has(mgr)) break
-          d++
-          cur = mgr
-        }
-        return d
+    const depthCache = new Map<string, number>()
+    const depthOf = (uid: string) => {
+      if (depthCache.has(uid)) return depthCache.get(uid)!
+      let d = 0,
+        cur = uid
+      while (true) {
+        const mgr = state.people[cur]?.managerUid
+        if (!mgr || !visiblePersonIds.has(mgr)) break
+        d++
+        cur = mgr
       }
-      return depthOf(a) - depthOf(b)
-    })
+      depthCache.set(uid, d)
+      return d
+    }
+    parentsToReflow.sort(([a], [b]) => depthOf(a) - depthOf(b))
 
     for (const [parentUid, kids] of parentsToReflow) {
       const parentNode = g.node(parentUid)
@@ -390,10 +391,7 @@ export function computeLayout(
   for (const e of g.edges()) {
     const edgeData: Record<string, unknown> = { direction }
     if (gridChildren.has(e.w)) {
-      const parentNode = g.node(e.v)
       edgeData.gridBusPos = gridBusPos.get(e.w)
-      edgeData.gridSpineX = parentNode?.x
-      edgeData.gridSpineY = parentNode?.y
     }
     edges.push({
       id: `${e.v}->${e.w}`,

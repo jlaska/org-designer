@@ -81,7 +81,7 @@ describe('getNodeDims', () => {
         direction: 'TB',
         snapToGrid: true,
         sortLayerBy: 'none' as const,
-        maxChildrenPerRow: 0,
+        maxChildrenPerRow: 0 as const,
       }).w,
     ).toBe(NODE_WIDTH)
   })
@@ -93,7 +93,7 @@ describe('getNodeDims', () => {
       direction: 'TB' as const,
       snapToGrid: true,
       sortLayerBy: 'none' as const,
-      maxChildrenPerRow: 0,
+      maxChildrenPerRow: 0 as const,
     }
     expect(getNodeDims(config).h).toBe(computeNodeHeight(allOn))
   })
@@ -202,5 +202,94 @@ describe('computeLayout sortLayerBy', () => {
 
     expect(sortedOrder).toEqual(['a', 'b', 'c'])
     expect(defaultOrder).not.toEqual(sortedOrder)
+  })
+})
+
+describe('computeLayout maxChildrenPerRow', () => {
+  const boss = makePerson({ uid: 'boss', cn: 'Boss', directReports: 5 })
+  const c1 = makePerson({ uid: 'c1', cn: 'Alice', managerUid: 'boss' })
+  const c2 = makePerson({ uid: 'c2', cn: 'Bob', managerUid: 'boss' })
+  const c3 = makePerson({ uid: 'c3', cn: 'Charlie', managerUid: 'boss' })
+  const c4 = makePerson({ uid: 'c4', cn: 'Diana', managerUid: 'boss' })
+  const c5 = makePerson({ uid: 'c5', cn: 'Eve', managerUid: 'boss' })
+
+  const state: EffectiveState = {
+    people: { boss, c1, c2, c3, c4, c5 },
+    teams: {},
+    hierarchy: { boss: null, c1: 'boss', c2: 'boss', c3: 'boss', c4: 'boss', c5: 'boss' },
+    scopeNodes: {},
+    scopeAssignments: {},
+  }
+
+  const expanded = new Set(['boss'])
+
+  const baseConfig: ConfigState = {
+    cardFields: allOff,
+    density: 'default',
+    direction: 'TB',
+    snapToGrid: false,
+    sortLayerBy: 'none',
+    maxChildrenPerRow: 0,
+  }
+
+  it('wraps children into rows: 5 children with maxPerRow=4 gives 4+1', () => {
+    const config: ConfigState = { ...baseConfig, maxChildrenPerRow: 4 }
+    const { nodes } = computeLayout(state, expanded, 'boss', config)
+
+    const children = nodes.filter((n) => n.id !== 'boss')
+    const yValues = [...new Set(children.map((n) => n.position.y))].sort((a, b) => a - b)
+
+    expect(yValues).toHaveLength(2)
+
+    const row0 = children.filter((n) => n.position.y === yValues[0])
+    const row1 = children.filter((n) => n.position.y === yValues[1])
+    expect(row0).toHaveLength(4)
+    expect(row1).toHaveLength(1)
+  })
+
+  it('spaces rows by rankStep in TB direction', () => {
+    const config: ConfigState = { ...baseConfig, maxChildrenPerRow: 4 }
+    const { nodes } = computeLayout(state, expanded, 'boss', config)
+
+    const children = nodes.filter((n) => n.id !== 'boss')
+    const yValues = [...new Set(children.map((n) => n.position.y))].sort((a, b) => a - b)
+    const nodeHeight = computeNodeHeight(allOff)
+    const rankGap = 36 // DENSITY_RANKSEP['default']
+    const rankStep = nodeHeight + rankGap
+
+    expect(yValues[1] - yValues[0]).toBe(rankStep)
+  })
+
+  it('pushes subtrees below the last grid row to prevent overlap', () => {
+    const grandchild = makePerson({ uid: 'gc', cn: 'Frank', managerUid: 'c1' })
+    const stateWithGc: EffectiveState = {
+      ...state,
+      people: { ...state.people, c1: { ...c1, directReports: 1 }, gc: grandchild },
+      hierarchy: { ...state.hierarchy, gc: 'c1' },
+    }
+    const expandedWithC1 = new Set(['boss', 'c1'])
+    const config: ConfigState = { ...baseConfig, maxChildrenPerRow: 4 }
+    const { nodes } = computeLayout(stateWithGc, expandedWithC1, 'boss', config)
+
+    const children = nodes.filter((n) => ['c1', 'c2', 'c3', 'c4', 'c5'].includes(n.id))
+    const lastRowY = Math.max(...children.map((n) => n.position.y))
+    const gcNode = nodes.find((n) => n.id === 'gc')!
+
+    expect(gcNode.position.y).toBeGreaterThan(lastRowY)
+  })
+
+  it('works in LR direction', () => {
+    const config: ConfigState = { ...baseConfig, direction: 'LR', maxChildrenPerRow: 4 }
+    const { nodes } = computeLayout(state, expanded, 'boss', config)
+
+    const children = nodes.filter((n) => n.id !== 'boss')
+    const xValues = [...new Set(children.map((n) => n.position.x))].sort((a, b) => a - b)
+
+    expect(xValues).toHaveLength(2)
+
+    const col0 = children.filter((n) => n.position.x === xValues[0])
+    const col1 = children.filter((n) => n.position.x === xValues[1])
+    expect(col0).toHaveLength(4)
+    expect(col1).toHaveLength(1)
   })
 })
