@@ -1,5 +1,5 @@
 import { useAppStore } from '@/store'
-import type { CardDensity, LayoutDirection, SortLayerBy } from '@/store'
+import type { CardDensity, LayoutDirection, MaxChildrenPerRow, SortLayerBy } from '@/store'
 
 function Toggle({
   label,
@@ -151,6 +151,18 @@ export function ConfigPanel() {
         <option value="directReports">Direct Reports</option>
         <option value="totalReports">Total Reports</option>
       </select>
+
+      <SectionHeader label="Max Per Row" />
+      <SegmentControl<string>
+        value={String(config.maxChildrenPerRow)}
+        options={[
+          { value: '0', label: 'Auto' },
+          { value: '4', label: '4' },
+          { value: '6', label: '6' },
+          { value: '8', label: '8' },
+        ]}
+        onChange={(v) => setConfig({ maxChildrenPerRow: Number(v) as MaxChildrenPerRow })}
+      />
 
       <SectionHeader label="Grid" />
       <Toggle

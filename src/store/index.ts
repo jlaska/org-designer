@@ -75,6 +75,7 @@ export interface CardFieldToggles {
 
 export type CardDensity = 'compact' | 'default' | 'comfortable'
 export type LayoutDirection = 'TB' | 'LR'
+export type MaxChildrenPerRow = 0 | 4 | 6 | 8
 export type SortLayerBy =
   | 'none'
   | 'name'
@@ -91,6 +92,7 @@ export interface ConfigState {
   direction: LayoutDirection
   snapToGrid: boolean
   sortLayerBy: SortLayerBy
+  maxChildrenPerRow: MaxChildrenPerRow
 }
 
 export interface UIState {
@@ -196,6 +198,7 @@ const defaultConfig: ConfigState = {
   direction: 'TB',
   snapToGrid: true,
   sortLayerBy: 'none',
+  maxChildrenPerRow: 0,
 }
 
 function computeEffective(baseline: BaselineData, overlay: Overlay): EffectiveState {

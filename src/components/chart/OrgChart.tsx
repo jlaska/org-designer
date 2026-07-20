@@ -11,6 +11,7 @@ import {
   type NodeTypes,
   type EdgeTypes,
   type Node,
+  type Edge,
   type NodeChange,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
@@ -224,11 +225,18 @@ function OrgChartInner() {
 
     const active = hasActiveFilters(filters)
 
+    const stampEdgeHighlight = (edges: Edge[]) =>
+      selectedNodeId
+        ? edges.map((e) =>
+            e.source === selectedNodeId ? { ...e, data: { ...e.data, highlighted: true } } : e,
+          )
+        : edges
+
     // Include/exclude mode: layout already handles node removal via filterVisibleIds; just stamp and set
     if (!active || !effectiveState || filters.mode !== 'highlight') {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setNodes(stampViewRoot(layoutResult.nodes))
-      setEdges(layoutResult.edges)
+      setEdges(stampEdgeHighlight(layoutResult.edges))
       return
     }
 
@@ -243,8 +251,8 @@ function OrgChartInner() {
         }),
       ),
     )
-    setEdges(layoutResult.edges)
-  }, [layoutResult, filters, effectiveState, ui.viewRootUid])
+    setEdges(stampEdgeHighlight(layoutResult.edges))
+  }, [layoutResult, filters, effectiveState, ui.viewRootUid, selectedNodeId])
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes((nds) => applyNodeChanges(changes, nds))

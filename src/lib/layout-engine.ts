@@ -171,33 +171,34 @@ export function computeLayout(
 
   dagre.layout(g)
 
+  // Shared helpers for post-layout passes
+  const isLR = direction === 'LR'
+  const crossStep = isLR ? nodeHeight + gap : NODE_WIDTH + gap
+
+  const childrenMap = new Map<string, string[]>()
+  for (const uid of visiblePersonIds) {
+    const mgr = state.people[uid]?.managerUid
+    if (mgr && visiblePersonIds.has(mgr)) {
+      if (!childrenMap.has(mgr)) childrenMap.set(mgr, [])
+      childrenMap.get(mgr)!.push(uid)
+    }
+  }
+
+  function getDescendantIds(root: string): string[] {
+    const ids: string[] = []
+    const q = [root]
+    while (q.length > 0) {
+      const id = q.shift()!
+      ids.push(id)
+      const ch = childrenMap.get(id)
+      if (ch) q.push(...ch)
+    }
+    return ids
+  }
+
   // Post-layout sort: reorder siblings by the selected attribute
   const sortBy = config?.sortLayerBy ?? 'none'
   if (sortBy !== 'none') {
-    const childrenMap = new Map<string, string[]>()
-    for (const uid of visiblePersonIds) {
-      const mgr = state.people[uid]?.managerUid
-      if (mgr && visiblePersonIds.has(mgr)) {
-        if (!childrenMap.has(mgr)) childrenMap.set(mgr, [])
-        childrenMap.get(mgr)!.push(uid)
-      }
-    }
-
-    const isLR = direction === 'LR'
-    const crossStep = isLR ? nodeHeight + gap : NODE_WIDTH + gap
-
-    function getDescendantIds(root: string): string[] {
-      const ids: string[] = []
-      const q = [root]
-      while (q.length > 0) {
-        const id = q.shift()!
-        ids.push(id)
-        const ch = childrenMap.get(id)
-        if (ch) q.push(...ch)
-      }
-      return ids
-    }
-
     const SORT_FIELD: Record<string, keyof (typeof state.people)[string]> = {
       name: 'cn',
       jobRole: 'jobRole',
@@ -231,7 +232,6 @@ export function computeLayout(
 
       kids.sort(comparePeople)
 
-      // Redistribute evenly, centered on the parent
       const totalCross = kids.length * crossStep - gap
       const startCross = parentCross - totalCross / 2 + crossSize / 2
 
@@ -248,6 +248,98 @@ export function computeLayout(
           if (desc) {
             if (isLR) desc.y += delta
             else desc.x += delta
+          }
+        }
+      }
+    }
+  }
+
+  // Grid reflow supersedes sort positions for parents exceeding maxPerRow
+  const maxPerRow = config?.maxChildrenPerRow ?? 0
+  const gridChildren = new Set<string>()
+  const gridBusPos = new Map<string, number>()
+
+  if (maxPerRow > 0) {
+    const rankStep = isLR ? NODE_WIDTH + rankGap : nodeHeight + rankGap
+    const nodeSize = isLR ? NODE_WIDTH : nodeHeight
+
+    // Process parents top-down so all of a parent's grid rows are placed
+    // compactly before any child subtree expands below them.
+    const parentsToReflow = [...childrenMap.entries()].filter(([, kids]) => kids.length > maxPerRow)
+    const depthCache = new Map<string, number>()
+    const depthOf = (uid: string) => {
+      if (depthCache.has(uid)) return depthCache.get(uid)!
+      let d = 0,
+        cur = uid
+      while (true) {
+        const mgr = state.people[cur]?.managerUid
+        if (!mgr || !visiblePersonIds.has(mgr)) break
+        d++
+        cur = mgr
+      }
+      depthCache.set(uid, d)
+      return d
+    }
+    parentsToReflow.sort(([a], [b]) => depthOf(a) - depthOf(b))
+
+    for (const [parentUid, kids] of parentsToReflow) {
+      const parentNode = g.node(parentUid)
+      if (!parentNode) continue
+
+      kids.sort((a, b) => (isLR ? g.node(a).y - g.node(b).y : g.node(a).x - g.node(b).x))
+
+      const numRows = Math.ceil(kids.length / maxPerRow)
+      const baseRank = Math.min(
+        ...kids.map((kid) => {
+          const n = g.node(kid)
+          return isLR ? n.x : n.y
+        }),
+      )
+
+      for (let row = 0; row < numRows; row++) {
+        const rowKids = kids.slice(row * maxPerRow, (row + 1) * maxPerRow)
+        const totalCross = rowKids.length * crossStep - gap
+        const parentCross = isLR ? parentNode.y : parentNode.x
+        const crossSize = isLR ? nodeHeight : NODE_WIDTH
+        const startCross = parentCross - totalCross / 2 + crossSize / 2
+        const currentRowRank = baseRank + row * rankStep
+        const busPos = currentRowRank - nodeSize / 2 - rankGap / 2
+
+        for (let col = 0; col < rowKids.length; col++) {
+          const kid = rowKids[col]
+          const kidNode = g.node(kid)
+          const newCross = startCross + col * crossStep
+
+          const dx = isLR ? currentRowRank - kidNode.x : newCross - kidNode.x
+          const dy = isLR ? newCross - kidNode.y : currentRowRank - kidNode.y
+
+          for (const descId of getDescendantIds(kid)) {
+            const desc = g.node(descId)
+            if (desc) {
+              desc.x += dx
+              desc.y += dy
+            }
+          }
+
+          gridChildren.add(kid)
+          gridBusPos.set(kid, busPos)
+        }
+      }
+
+      // Push subtrees of non-last-row children below the last grid row
+      if (numRows > 1) {
+        for (let row = 0; row < numRows - 1; row++) {
+          const rowKids = kids.slice(row * maxPerRow, (row + 1) * maxPerRow)
+          const pushAmount = (numRows - 1 - row) * rankStep
+          for (const kid of rowKids) {
+            for (const descId of getDescendantIds(kid)) {
+              if (descId === kid) continue
+              const desc = g.node(descId)
+              if (desc) {
+                if (isLR) desc.x += pushAmount
+                else desc.y += pushAmount
+              }
+            }
           }
         }
       }
@@ -297,12 +389,16 @@ export function computeLayout(
   }
 
   for (const e of g.edges()) {
+    const edgeData: Record<string, unknown> = { direction }
+    if (gridChildren.has(e.w)) {
+      edgeData.gridBusPos = gridBusPos.get(e.w)
+    }
     edges.push({
       id: `${e.v}->${e.w}`,
       source: e.v,
       target: e.w,
       type: 'orgchart',
-      data: { direction },
+      data: edgeData,
       style: { stroke: '#94a3b8', strokeWidth: 1.5 },
     })
   }
