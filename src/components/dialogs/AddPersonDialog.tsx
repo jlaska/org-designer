@@ -32,6 +32,8 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
   const [teamId, setTeamId] = useState(editPerson?.teamId ?? null)
   const [yamlRoles, setYamlRoles] = useState<Set<string>>(new Set(editPerson?.yamlRoles ?? []))
   const [count, setCount] = useState(1)
+  const [newTagInput, setNewTagInput] = useState('')
+  const [newTeamInput, setNewTeamInput] = useState('')
 
   const nameRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
@@ -55,9 +57,18 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
 
   const teams = useMemo(() => {
     if (!effectiveState) return []
-    return Object.values(effectiveState.teams)
-      .map((t) => ({ id: t.id, name: t.name }))
-      .sort((a, b) => a.name.localeCompare(b.name))
+    const predefined = Object.values(effectiveState.teams).map((t) => ({ id: t.id, name: t.name }))
+
+    // Collect custom teams from people's teamIds
+    const customTeamIds = new Set<string>()
+    Object.values(effectiveState.people).forEach((p) => {
+      if (p.teamId && !effectiveState.teams[p.teamId]) {
+        customTeamIds.add(p.teamId)
+      }
+    })
+
+    const custom = Array.from(customTeamIds).map((id) => ({ id, name: id }))
+    return [...predefined, ...custom].sort((a, b) => a.name.localeCompare(b.name))
   }, [effectiveState])
 
   const allTags = useMemo(() => {
@@ -259,48 +270,123 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
           {isEdit && (
             <>
               <Field label="Team">
-                <select
-                  value={teamId ?? ''}
-                  onChange={(e) => setTeamId(e.target.value || null)}
-                  className="input-base"
-                >
-                  <option value="">—</option>
-                  {teams.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="space-y-2">
+                  <select
+                    value={teamId ?? ''}
+                    onChange={(e) => setTeamId(e.target.value || null)}
+                    className="input-base w-full"
+                  >
+                    <option value="">—</option>
+                    {teams.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex gap-1">
+                    <input
+                      type="text"
+                      value={newTeamInput}
+                      onChange={(e) => setNewTeamInput(e.target.value)}
+                      placeholder="Add custom team"
+                      className="input-base flex-1 text-xs"
+                    />
+                    <button
+                      type="button"
+                      disabled={
+                        !newTeamInput.trim() || teams.some((t) => t.id === newTeamInput.trim())
+                      }
+                      onClick={() => {
+                        if (newTeamInput.trim()) {
+                          setTeamId(newTeamInput.trim())
+                          setNewTeamInput('')
+                        }
+                      }}
+                      className="rounded border border-gray-200 px-2 py-1.5 text-xs text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  {teamId && !teams.some((t) => t.id === teamId) && (
+                    <div className="rounded bg-amber-50 px-2 py-1 text-xs text-amber-600">
+                      Custom: {teamId}
+                    </div>
+                  )}
+                </div>
               </Field>
 
               <Field label="Tags">
-                <div className="flex flex-wrap gap-1 rounded border border-gray-200 bg-white p-2">
-                  {allTags.length === 0 ? (
-                    <span className="text-xs text-gray-400">No tags available</span>
-                  ) : (
-                    allTags.map((tag) => (
-                      <label
-                        key={tag}
-                        className="flex cursor-pointer items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs hover:bg-gray-200"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={yamlRoles.has(tag)}
-                          onChange={(e) => {
-                            const next = new Set(yamlRoles)
-                            if (e.target.checked) {
-                              next.add(tag)
-                            } else {
-                              next.delete(tag)
-                            }
-                            setYamlRoles(next)
-                          }}
-                          className="h-3 w-3"
-                        />
-                        {tag}
-                      </label>
-                    ))
-                  )}
+                <div className="space-y-2">
+                  <div className="flex flex-wrap gap-1 rounded border border-gray-200 bg-white p-2">
+                    {allTags.length === 0 && yamlRoles.size === 0 ? (
+                      <span className="text-xs text-gray-400">No tags available</span>
+                    ) : (
+                      [
+                        ...allTags,
+                        ...Array.from(yamlRoles).filter((t) => !allTags.includes(t)),
+                      ].map((tag) => {
+                        const isCustom = !allTags.includes(tag)
+                        return (
+                          <label
+                            key={tag}
+                            className={`flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs ${
+                              isCustom
+                                ? 'bg-amber-100 hover:bg-amber-200'
+                                : 'bg-gray-100 hover:bg-gray-200'
+                            }`}
+                            title={isCustom ? 'Custom tag' : ''}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={yamlRoles.has(tag)}
+                              onChange={(e) => {
+                                const next = new Set(yamlRoles)
+                                if (e.target.checked) {
+                                  next.add(tag)
+                                } else {
+                                  next.delete(tag)
+                                }
+                                setYamlRoles(next)
+                              }}
+                              className="h-3 w-3"
+                            />
+                            {tag}
+                          </label>
+                        )
+                      })
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    <input
+                      type="text"
+                      value={newTagInput}
+                      onChange={(e) => setNewTagInput(e.target.value)}
+                      placeholder="Add custom tag"
+                      className="input-base flex-1 text-xs"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          if (newTagInput.trim() && !yamlRoles.has(newTagInput.trim())) {
+                            setYamlRoles((prev) => new Set([...prev, newTagInput.trim()]))
+                            setNewTagInput('')
+                          }
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      disabled={!newTagInput.trim() || yamlRoles.has(newTagInput.trim())}
+                      onClick={() => {
+                        if (newTagInput.trim() && !yamlRoles.has(newTagInput.trim())) {
+                          setYamlRoles((prev) => new Set([...prev, newTagInput.trim()]))
+                          setNewTagInput('')
+                        }
+                      }}
+                      className="rounded border border-gray-200 px-2 py-1.5 text-xs text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
+                    >
+                      Add
+                    </button>
+                  </div>
                 </div>
               </Field>
             </>
