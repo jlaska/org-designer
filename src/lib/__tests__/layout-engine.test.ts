@@ -25,6 +25,7 @@ const allOff: CardFieldToggles = {
   hireDate: false,
   tenure: false,
   team: false,
+  tags: false,
   reportCounts: false,
 }
 
@@ -36,6 +37,7 @@ const allOn: CardFieldToggles = {
   hireDate: true,
   tenure: true,
   team: true,
+  tags: true,
   reportCounts: true,
 }
 

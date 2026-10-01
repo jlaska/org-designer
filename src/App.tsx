@@ -12,10 +12,14 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const scenario = params.get('scenario')
+    const viewRoot = params.get('viewRoot')
 
     loadBaseline()
       .then(() => {
         if (scenario) return loadScenario(scenario)
+      })
+      .then(() => {
+        if (viewRoot) useAppStore.getState().setViewRoot(viewRoot)
       })
       .catch(console.error)
   }, [loadBaseline, loadScenario])

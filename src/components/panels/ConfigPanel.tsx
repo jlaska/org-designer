@@ -113,6 +113,11 @@ export function ConfigPanel() {
         checked={config.cardFields.team}
         onChange={(v) => setCardFields({ team: v })}
       />
+      <Toggle
+        label="Tags"
+        checked={config.cardFields.tags}
+        onChange={(v) => setCardFields({ tags: v })}
+      />
 
       <SectionHeader label="Card Density" />
       <SegmentControl<CardDensity>

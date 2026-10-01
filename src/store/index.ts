@@ -70,6 +70,7 @@ export interface CardFieldToggles {
   hireDate: boolean
   tenure: boolean
   team: boolean
+  tags: boolean
   reportCounts: boolean
 }
 
@@ -192,10 +193,11 @@ const defaultConfig: ConfigState = {
     hireDate: false,
     tenure: false,
     team: false,
+    tags: true,
     reportCounts: true,
   },
   density: 'default',
-  direction: 'TB',
+  direction: 'LR',
   snapToGrid: true,
   sortLayerBy: 'none',
   maxChildrenPerRow: 0,
