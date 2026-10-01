@@ -29,6 +29,8 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
   const [title, setTitle] = useState(editPerson?.jobTitle ?? defaultRole)
   const [geo, setGeo] = useState(editPerson?.geo ?? '')
   const [country, setCountry] = useState(editPerson?.co ?? '')
+  const [teamId, setTeamId] = useState(editPerson?.teamId ?? null)
+  const [yamlRoles, setYamlRoles] = useState<Set<string>>(new Set(editPerson?.yamlRoles ?? []))
   const [count, setCount] = useState(1)
 
   const nameRef = useRef<HTMLInputElement>(null)
@@ -50,6 +52,22 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
         .filter(Boolean),
     ),
   ).sort()
+
+  const teams = useMemo(() => {
+    if (!effectiveState) return []
+    return Object.values(effectiveState.teams)
+      .map((t) => ({ id: t.id, name: t.name }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [effectiveState])
+
+  const allTags = useMemo(() => {
+    if (!effectiveState) return []
+    const tagSet = new Set<string>()
+    Object.values(effectiveState.people).forEach((p) => {
+      p.yamlRoles.forEach((tag) => tagSet.add(tag))
+    })
+    return Array.from(tagSet).sort()
+  }, [effectiveState])
 
   const prevRole = useRef(role)
   useEffect(() => {
@@ -75,6 +93,8 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
           jobRole: role,
           geo: geo,
           co: country,
+          teamId: teamId || null,
+          yamlRoles: Array.from(yamlRoles),
         },
         timestamp,
       }
@@ -235,6 +255,56 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
               </select>
             </Field>
           </div>
+
+          {isEdit && (
+            <>
+              <Field label="Team">
+                <select
+                  value={teamId ?? ''}
+                  onChange={(e) => setTeamId(e.target.value || null)}
+                  className="input-base"
+                >
+                  <option value="">—</option>
+                  {teams.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              <Field label="Tags">
+                <div className="flex flex-wrap gap-1 rounded border border-gray-200 bg-white p-2">
+                  {allTags.length === 0 ? (
+                    <span className="text-xs text-gray-400">No tags available</span>
+                  ) : (
+                    allTags.map((tag) => (
+                      <label
+                        key={tag}
+                        className="flex cursor-pointer items-center gap-1 rounded bg-gray-100 px-2 py-1 text-xs hover:bg-gray-200"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={yamlRoles.has(tag)}
+                          onChange={(e) => {
+                            const next = new Set(yamlRoles)
+                            if (e.target.checked) {
+                              next.add(tag)
+                            } else {
+                              next.delete(tag)
+                            }
+                            setYamlRoles(next)
+                          }}
+                          className="h-3 w-3"
+                        />
+                        {tag}
+                      </label>
+                    ))
+                  )}
+                </div>
+              </Field>
+            </>
+          )}
         </div>
 
         <div className="mt-5 flex justify-end gap-2">

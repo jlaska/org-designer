@@ -436,15 +436,13 @@ function ContextMenuDropdown({
         Add new report
       </button>
 
-      {isPlaceholder && (
-        <button
-          className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
-          onClick={onEditReport}
-        >
-          <Pencil className="h-3 w-3 text-gray-400" />
-          Edit card
-        </button>
-      )}
+      <button
+        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
+        onClick={onEditReport}
+      >
+        <Pencil className="h-3 w-3 text-gray-400" />
+        {isPlaceholder ? 'Edit card' : 'Edit'}
+      </button>
 
       {data.managerUid !== null && (
         <button
