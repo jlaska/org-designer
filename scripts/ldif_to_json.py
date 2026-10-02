@@ -6,8 +6,8 @@ Translates vendor-specific LDAP field names to the generic schema
 expected by all_users.json (see docs/import-schema.md).
 """
 
-import sys
 import json
+import sys
 
 # Map LDAP-specific attribute names to the generic schema field names.
 # Attributes not listed here are passed through unchanged.

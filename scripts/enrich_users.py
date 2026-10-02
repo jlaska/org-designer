@@ -5,8 +5,8 @@ Enrich user data with computed fields:
 - Report counts: Add directReports and totalReports counts
 """
 
-import sys
 import json
+import sys
 
 try:
     import geonamescache
@@ -21,7 +21,7 @@ countries = gc.get_countries()
 
 # Build city lookup by name (lowercase)
 city_lookup = {}
-for gid, city in cities.items():
+for city in cities.values():
     city_name = city['name'].lower()
     # Store multiple cities with same name (we'll pick the largest by population)
     if city_name not in city_lookup:

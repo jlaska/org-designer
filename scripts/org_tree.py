@@ -19,9 +19,8 @@ import json
 import re
 import sys
 from collections import defaultdict
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
-
 
 _SKIP_WORDS = {"a", "an", "the", "and", "or", "of", "for", "in", "to", "at"}
 
@@ -47,7 +46,7 @@ def tenure_years(raw: str) -> str:
     d = parse_ldap_date(raw)
     if d is None:
         return "—"
-    years = (date.today() - d).days / 365.25
+    years = (datetime.now().astimezone().date() - d).days / 365.25
     return f"{years:.1f}y"
 
 
