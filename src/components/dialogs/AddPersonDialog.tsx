@@ -32,8 +32,12 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
   const [teamId, setTeamId] = useState(editPerson?.teamId ?? null)
   const [yamlRoles, setYamlRoles] = useState<Set<string>>(new Set(editPerson?.yamlRoles ?? []))
   const [count, setCount] = useState(1)
-  const [newTagInput, setNewTagInput] = useState('')
-  const [newTeamInput, setNewTeamInput] = useState('')
+  const [teamInput, setTeamInput] = useState('')
+  const [teamDropdownOpen, setTeamDropdownOpen] = useState(false)
+  const [tagInput, setTagInput] = useState('')
+  const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
+  const teamInputRef = useRef<HTMLInputElement>(null)
+  const tagInputRef = useRef<HTMLInputElement>(null)
 
   const nameRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
@@ -85,6 +89,16 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
     if (title === prevRole.current) setTitle(role)
     prevRole.current = role
   }, [role, title])
+
+  const filteredTeams = useMemo(() => {
+    const matching = teams.filter((t) => t.name.toLowerCase().includes(teamInput.toLowerCase()))
+    const hasExactMatch = teams.some((t) => t.id === teamInput.trim())
+    return { matching, canCreate: teamInput.trim().length > 0 && !hasExactMatch }
+  }, [teams, teamInput])
+
+  const filteredTags = useMemo(() => {
+    return allTags.filter((t) => t.toLowerCase().includes(tagInput.toLowerCase()))
+  }, [allTags, tagInput])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -138,8 +152,8 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
           managerUid,
           directReports: 0,
           totalReports: 0,
-          teamId: null,
-          yamlRoles: [],
+          teamId: teamId || null,
+          yamlRoles: Array.from(yamlRoles),
         }
         return { type: 'add_person', person, timestamp }
       }
@@ -272,139 +286,203 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
             </Field>
           </div>
 
-          {isEdit && (
-            <>
-              <Field label="Team">
-                <div className="space-y-2">
-                  <select
-                    value={teamId ?? ''}
-                    onChange={(e) => setTeamId(e.target.value || null)}
-                    className="input-base w-full"
-                  >
-                    <option value="">—</option>
-                    {teams.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="flex gap-1">
-                    <input
-                      type="text"
-                      value={newTeamInput}
-                      onChange={(e) => setNewTeamInput(e.target.value)}
-                      placeholder="Add custom team"
-                      className="input-base flex-1 text-xs"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          if (newTeamInput.trim()) {
-                            setTeamId(newTeamInput.trim())
-                            setNewTeamInput('')
-                          }
-                        }
-                      }}
-                    />
+          <Field label="Team">
+            <div className="space-y-2">
+              <div className="flex min-h-[32px] flex-wrap gap-1 rounded border border-gray-200 bg-white p-2">
+                {teamId && (
+                  <div className="inline-flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                    {teams.find((t) => t.id === teamId)?.name ?? teamId}
                     <button
                       type="button"
-                      disabled={
-                        !newTeamInput.trim() || teams.some((t) => t.id === newTeamInput.trim())
-                      }
-                      onClick={() => {
-                        if (newTeamInput.trim()) {
-                          setTeamId(newTeamInput.trim())
-                          setNewTeamInput('')
-                        }
-                      }}
-                      className="rounded border border-gray-200 px-2 py-1.5 text-xs text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
+                      onClick={() => setTeamId(null)}
+                      className="text-blue-600 hover:text-blue-800"
                     >
-                      Add
+                      <X className="h-3 w-3" />
                     </button>
                   </div>
-                  {teamId && !teams.some((t) => t.id === teamId) && (
-                    <div className="rounded bg-amber-50 px-2 py-1 text-xs text-amber-600">
-                      Custom: {teamId}
-                    </div>
-                  )}
-                </div>
-              </Field>
-
-              <Field label="Tags">
-                <div className="space-y-2">
-                  <div className="flex flex-wrap gap-1 rounded border border-gray-200 bg-white p-2">
-                    {allTags.length === 0 && yamlRoles.size === 0 ? (
-                      <span className="text-xs text-gray-400">No tags available</span>
+                )}
+                {!teamId && <span className="text-xs text-gray-400">No team</span>}
+              </div>
+              <div className="relative">
+                <input
+                  ref={teamInputRef}
+                  type="text"
+                  value={teamInput}
+                  onChange={(e) => {
+                    setTeamInput(e.target.value)
+                    setTeamDropdownOpen(true)
+                  }}
+                  onFocus={() => setTeamDropdownOpen(true)}
+                  onBlur={() => {
+                    setTimeout(() => setTeamDropdownOpen(false), 150)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && filteredTeams.canCreate) {
+                      e.preventDefault()
+                      setTeamId(teamInput.trim())
+                      setTeamInput('')
+                      setTeamDropdownOpen(false)
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setTeamDropdownOpen(false)
+                    }
+                  }}
+                  placeholder="Search or create team..."
+                  className="input-base w-full text-xs"
+                />
+                {teamDropdownOpen && (
+                  <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-48 overflow-y-auto rounded border border-gray-200 bg-white shadow-md">
+                    {filteredTeams.matching.length > 0 ? (
+                      filteredTeams.matching.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            setTeamId(t.id)
+                            setTeamInput('')
+                            setTeamDropdownOpen(false)
+                          }}
+                          className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-50 ${
+                            teamId === t.id ? 'text-gray-400 line-through' : 'text-gray-700'
+                          }`}
+                          disabled={teamId === t.id}
+                        >
+                          {t.name}
+                        </button>
+                      ))
+                    ) : teamInput ? (
+                      <div className="px-3 py-2 text-xs text-gray-400">No matching teams</div>
                     ) : (
-                      [
-                        ...allTags,
-                        ...Array.from(yamlRoles).filter((t) => !allTags.includes(t)),
-                      ].map((tag) => {
-                        const isCustom = !allTags.includes(tag)
-                        return (
-                          <label
-                            key={tag}
-                            className={`flex cursor-pointer items-center gap-1 rounded px-2 py-1 text-xs ${
-                              isCustom
-                                ? 'bg-amber-100 hover:bg-amber-200'
-                                : 'bg-gray-100 hover:bg-gray-200'
-                            }`}
-                            title={isCustom ? 'Custom tag' : ''}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={yamlRoles.has(tag)}
-                              onChange={(e) => {
-                                const next = new Set(yamlRoles)
-                                if (e.target.checked) {
-                                  next.add(tag)
-                                } else {
-                                  next.delete(tag)
-                                }
-                                setYamlRoles(next)
-                              }}
-                              className="h-3 w-3"
-                            />
-                            {tag}
-                          </label>
-                        )
-                      })
+                      <div className="px-3 py-2 text-xs text-gray-500">
+                        {teams.length === 0
+                          ? 'No teams available'
+                          : `${teams.length} team${teams.length === 1 ? '' : 's'}`}
+                      </div>
+                    )}
+                    {filteredTeams.canCreate && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setTeamId(teamInput.trim())
+                          setTeamInput('')
+                          setTeamDropdownOpen(false)
+                        }}
+                        className="w-full px-3 py-2 text-left text-xs font-medium text-blue-600 hover:bg-blue-50"
+                      >
+                        Create "{teamInput.trim()}"
+                      </button>
                     )}
                   </div>
-                  <div className="flex gap-1">
-                    <input
-                      type="text"
-                      value={newTagInput}
-                      onChange={(e) => setNewTagInput(e.target.value)}
-                      placeholder="Add custom tag"
-                      className="input-base flex-1 text-xs"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          if (newTagInput.trim() && !yamlRoles.has(newTagInput.trim())) {
-                            setYamlRoles((prev) => new Set([...prev, newTagInput.trim()]))
-                            setNewTagInput('')
-                          }
-                        }
-                      }}
-                    />
+                )}
+              </div>
+            </div>
+          </Field>
+
+          <Field label="Tags">
+            <div className="space-y-2">
+              <div className="flex min-h-[32px] flex-wrap gap-1 rounded border border-gray-200 bg-white p-2">
+                {Array.from(yamlRoles).map((tag) => (
+                  <div
+                    key={tag}
+                    className="inline-flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700"
+                  >
+                    {tag}
                     <button
                       type="button"
-                      disabled={!newTagInput.trim() || yamlRoles.has(newTagInput.trim())}
                       onClick={() => {
-                        if (newTagInput.trim() && !yamlRoles.has(newTagInput.trim())) {
-                          setYamlRoles((prev) => new Set([...prev, newTagInput.trim()]))
-                          setNewTagInput('')
-                        }
+                        const next = new Set(yamlRoles)
+                        next.delete(tag)
+                        setYamlRoles(next)
                       }}
-                      className="rounded border border-gray-200 px-2 py-1.5 text-xs text-gray-600 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
+                      className="text-blue-600 hover:text-blue-800"
                     >
-                      Add
+                      <X className="h-3 w-3" />
                     </button>
                   </div>
-                </div>
-              </Field>
-            </>
-          )}
+                ))}
+                {yamlRoles.size === 0 && <span className="text-xs text-gray-400">No tags</span>}
+              </div>
+              <div className="relative">
+                <input
+                  ref={tagInputRef}
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => {
+                    setTagInput(e.target.value)
+                    setTagDropdownOpen(true)
+                  }}
+                  onFocus={() => setTagDropdownOpen(true)}
+                  onBlur={() => {
+                    setTimeout(() => setTagDropdownOpen(false), 150)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      if (tagInput.trim() && !yamlRoles.has(tagInput.trim())) {
+                        setYamlRoles((prev) => new Set([...prev, tagInput.trim()]))
+                        setTagInput('')
+                      }
+                    } else if (e.key === 'Escape') {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setTagDropdownOpen(false)
+                    }
+                  }}
+                  placeholder="Search or create tag..."
+                  className="input-base w-full text-xs"
+                />
+                {tagDropdownOpen && (
+                  <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-48 overflow-y-auto rounded border border-gray-200 bg-white shadow-md">
+                    {filteredTags.length > 0 ? (
+                      filteredTags.map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => {
+                            if (!yamlRoles.has(tag)) {
+                              setYamlRoles((prev) => new Set([...prev, tag]))
+                            }
+                            setTagInput('')
+                            tagInputRef.current?.focus()
+                          }}
+                          className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-50 ${
+                            yamlRoles.has(tag) ? 'text-gray-400 line-through' : 'text-gray-700'
+                          }`}
+                          disabled={yamlRoles.has(tag)}
+                        >
+                          {tag}
+                        </button>
+                      ))
+                    ) : tagInput ? (
+                      <div className="px-3 py-2 text-xs text-gray-400">No matching tags</div>
+                    ) : (
+                      <div className="px-3 py-2 text-xs text-gray-500">
+                        {allTags.length === 0
+                          ? 'No tags available'
+                          : `${allTags.length} tag${allTags.length === 1 ? '' : 's'}`}
+                      </div>
+                    )}
+                    {tagInput.trim() &&
+                      !allTags.includes(tagInput.trim()) &&
+                      !yamlRoles.has(tagInput.trim()) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setYamlRoles((prev) => new Set([...prev, tagInput.trim()]))
+                            setTagInput('')
+                            tagInputRef.current?.focus()
+                          }}
+                          className="w-full px-3 py-2 text-left text-xs font-medium text-blue-600 hover:bg-blue-50"
+                        >
+                          Create "{tagInput.trim()}"
+                        </button>
+                      )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Field>
         </div>
 
         <div className="mt-5 flex justify-end gap-2">
