@@ -84,6 +84,7 @@ describe('getNodeDims', () => {
         snapToGrid: true,
         sortLayerBy: 'none' as const,
         maxChildrenPerRow: 0 as const,
+        showScopes: false,
       }).w,
     ).toBe(NODE_WIDTH)
   })
@@ -96,6 +97,7 @@ describe('getNodeDims', () => {
       snapToGrid: true,
       sortLayerBy: 'none' as const,
       maxChildrenPerRow: 0 as const,
+      showScopes: false,
     }
     expect(getNodeDims(config).h).toBe(computeNodeHeight(allOn))
   })
@@ -172,6 +174,7 @@ describe('computeLayout sortLayerBy', () => {
     snapToGrid: false,
     sortLayerBy: 'none',
     maxChildrenPerRow: 0,
+    showScopes: false,
   }
 
   it('sorts siblings by name when sortLayerBy is "name"', () => {
@@ -232,6 +235,7 @@ describe('computeLayout maxChildrenPerRow', () => {
     snapToGrid: false,
     sortLayerBy: 'none',
     maxChildrenPerRow: 0,
+    showScopes: false,
   }
 
   it('wraps children into rows: 5 children with maxPerRow=4 gives 4+1', () => {

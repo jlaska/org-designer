@@ -93,20 +93,25 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
     const timestamp = new Date().toISOString()
 
     if (isEdit) {
+      const updates: Partial<PersonRecord> = {}
+
+      // Only include fields that differ from editPerson (preserve LDAP data)
+      if (name.trim() !== editPerson.cn) updates.cn = name.trim()
+      if (title.trim() !== editPerson.jobTitle) updates.jobTitle = title.trim() || role
+      if (role !== editPerson.jobRole) updates.jobRole = role
+      if (geo !== editPerson.geo) updates.geo = geo
+      if (country !== editPerson.co) updates.co = country
+      if (teamId !== editPerson.teamId) updates.teamId = teamId || null
+
+      const newYamlRoles = Array.from(yamlRoles)
+      if (JSON.stringify(newYamlRoles) !== JSON.stringify(editPerson.yamlRoles)) {
+        updates.yamlRoles = newYamlRoles
+      }
+
       const action: EditPersonAction = {
         type: 'edit_person',
         uid: editPerson.uid,
-        updates: {
-          cn: name.trim(),
-          displayName: name.trim(),
-          preferredLastName: name.trim().split(' ').slice(-1)[0] ?? '',
-          jobTitle: title.trim() || role,
-          jobRole: role,
-          geo: geo,
-          co: country,
-          teamId: teamId || null,
-          yamlRoles: Array.from(yamlRoles),
-        },
+        updates,
         timestamp,
       }
       pushAction(action)
@@ -290,6 +295,15 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
                       onChange={(e) => setNewTeamInput(e.target.value)}
                       placeholder="Add custom team"
                       className="input-base flex-1 text-xs"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          if (newTeamInput.trim()) {
+                            setTeamId(newTeamInput.trim())
+                            setNewTeamInput('')
+                          }
+                        }
+                      }}
                     />
                     <button
                       type="button"

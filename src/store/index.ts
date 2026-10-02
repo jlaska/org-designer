@@ -95,6 +95,7 @@ export interface ConfigState {
   snapToGrid: boolean
   sortLayerBy: SortLayerBy
   maxChildrenPerRow: MaxChildrenPerRow
+  showScopes: boolean
 }
 
 export interface UIState {
@@ -198,10 +199,11 @@ const defaultConfig: ConfigState = {
     reportCounts: true,
   },
   density: 'default',
-  direction: 'LR',
+  direction: 'TB',
   snapToGrid: true,
   sortLayerBy: 'none',
   maxChildrenPerRow: 0,
+  showScopes: false,
 }
 
 function computeEffective(baseline: BaselineData, overlay: Overlay): EffectiveState {
