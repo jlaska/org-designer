@@ -216,6 +216,11 @@ export function computeLayout(
       if (sortBy === 'totalReports') {
         return (state.people[b]?.totalReports ?? 0) - (state.people[a]?.totalReports ?? 0)
       }
+      if (sortBy === 'team') {
+        const aTeam = state.people[a]?.teamId ?? ''
+        const bTeam = state.people[b]?.teamId ?? ''
+        return String(aTeam).localeCompare(String(bTeam))
+      }
       const field = SORT_FIELD[sortBy]
       const va = String(state.people[a]?.[field] ?? '')
       const vb = String(state.people[b]?.[field] ?? '')

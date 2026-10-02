@@ -84,6 +84,7 @@ export type SortLayerBy =
   | 'jobTitle'
   | 'geo'
   | 'country'
+  | 'team'
   | 'directReports'
   | 'totalReports'
 
@@ -192,7 +193,7 @@ const defaultConfig: ConfigState = {
     city: false,
     hireDate: false,
     tenure: false,
-    team: false,
+    team: true,
     tags: true,
     reportCounts: true,
   },

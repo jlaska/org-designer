@@ -153,6 +153,7 @@ export function ConfigPanel() {
         <option value="jobTitle">Job Title</option>
         <option value="geo">Geo</option>
         <option value="country">Country</option>
+        <option value="team">Team</option>
         <option value="directReports">Direct Reports</option>
         <option value="totalReports">Total Reports</option>
       </select>
