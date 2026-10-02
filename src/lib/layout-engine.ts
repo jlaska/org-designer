@@ -101,7 +101,7 @@ export function computeLayout(
   const direction = config?.direction ?? 'TB'
   const cardFields = config?.cardFields
   const hasAnyTeam = Object.values(state.people).some((p) => !!p.teamId)
-  const hasTags = Object.values(state.people).some((p) => p.yamlRoles && p.yamlRoles.length > 0)
+  const hasTags = Object.values(state.people).some((p) => p.tags && p.tags.length > 0)
   const nodeHeight = computeNodeHeight(cardFields, hasAnyTeam, hasTags)
 
   const gap = DENSITY_GAP[density]

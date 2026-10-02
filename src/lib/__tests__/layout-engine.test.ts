@@ -61,8 +61,8 @@ describe('computeNodeHeight', () => {
     expect(computeNodeHeight(threeFields)).toBe(NODE_HEIGHT_BASE + 3 * FIELD_ROW_HEIGHT)
   })
 
-  it('returns max height when all 8 fields are on', () => {
-    expect(computeNodeHeight(allOn)).toBe(NODE_HEIGHT_BASE + 8 * FIELD_ROW_HEIGHT)
+  it('returns max height when all 9 fields are on', () => {
+    expect(computeNodeHeight(allOn)).toBe(NODE_HEIGHT_BASE + 9 * FIELD_ROW_HEIGHT)
   })
 
   it('returns default height when cardFields is undefined', () => {
@@ -70,6 +70,16 @@ describe('computeNodeHeight', () => {
     const height = computeNodeHeight(undefined)
     expect(typeof height).toBe('number')
     expect(height).toBeGreaterThanOrEqual(NODE_HEIGHT_BASE)
+  })
+
+  it('does not count the tags row when no one has tags', () => {
+    const tagsOnly: CardFieldToggles = { ...allOff, tags: true }
+    expect(computeNodeHeight(tagsOnly, true, false)).toBe(NODE_HEIGHT_BASE)
+  })
+
+  it('counts the tags row when at least one person has tags', () => {
+    const tagsOnly: CardFieldToggles = { ...allOff, tags: true }
+    expect(computeNodeHeight(tagsOnly, true, true)).toBe(NODE_HEIGHT_BASE + FIELD_ROW_HEIGHT)
   })
 })
 
@@ -147,6 +157,7 @@ function makePerson(overrides: Partial<PersonRecord> & { uid: string; cn: string
     totalReports: 0,
     teamId: null,
     yamlRoles: [],
+    tags: [],
     ...overrides,
   }
 }

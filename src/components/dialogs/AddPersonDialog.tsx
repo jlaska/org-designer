@@ -30,7 +30,7 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
   const [geo, setGeo] = useState(editPerson?.geo ?? '')
   const [country, setCountry] = useState(editPerson?.co ?? '')
   const [teamId, setTeamId] = useState(editPerson?.teamId ?? null)
-  const [yamlRoles, setYamlRoles] = useState<Set<string>>(new Set(editPerson?.yamlRoles ?? []))
+  const [tags, setTags] = useState<Set<string>>(new Set(editPerson?.tags ?? []))
   const [count, setCount] = useState(1)
   const [teamInput, setTeamInput] = useState('')
   const [teamDropdownOpen, setTeamDropdownOpen] = useState(false)
@@ -79,7 +79,7 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
     if (!effectiveState) return []
     const tagSet = new Set<string>()
     Object.values(effectiveState.people).forEach((p) => {
-      p.yamlRoles.forEach((tag) => tagSet.add(tag))
+      p.tags.forEach((tag) => tagSet.add(tag))
     })
     return Array.from(tagSet).sort()
   }, [effectiveState])
@@ -91,9 +91,10 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
   }, [role, title])
 
   const filteredTeams = useMemo(() => {
-    const matching = teams.filter((t) => t.name.toLowerCase().includes(teamInput.toLowerCase()))
-    const hasExactMatch = teams.some((t) => t.id === teamInput.trim())
-    return { matching, canCreate: teamInput.trim().length > 0 && !hasExactMatch }
+    const trimmed = teamInput.trim()
+    const matching = teams.filter((t) => t.name.toLowerCase().includes(trimmed.toLowerCase()))
+    const exactNameMatch = teams.find((t) => t.name.toLowerCase() === trimmed.toLowerCase())
+    return { matching, exactNameMatch, canCreate: trimmed.length > 0 && !exactNameMatch }
   }, [teams, teamInput])
 
   const filteredTags = useMemo(() => {
@@ -117,9 +118,9 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
       if (country !== editPerson.co) updates.co = country
       if (teamId !== editPerson.teamId) updates.teamId = teamId || null
 
-      const newYamlRoles = Array.from(yamlRoles)
-      if (JSON.stringify(newYamlRoles) !== JSON.stringify(editPerson.yamlRoles)) {
-        updates.yamlRoles = newYamlRoles
+      const newTags = Array.from(tags)
+      if (JSON.stringify(newTags) !== JSON.stringify(editPerson.tags)) {
+        updates.tags = newTags
       }
 
       const action: EditPersonAction = {
@@ -153,7 +154,8 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
           directReports: 0,
           totalReports: 0,
           teamId: teamId || null,
-          yamlRoles: Array.from(yamlRoles),
+          yamlRoles: [],
+          tags: Array.from(tags),
         }
         return { type: 'add_person', person, timestamp }
       }
@@ -317,9 +319,9 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
                     setTimeout(() => setTeamDropdownOpen(false), 150)
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && filteredTeams.canCreate) {
+                    if (e.key === 'Enter' && teamInput.trim()) {
                       e.preventDefault()
-                      setTeamId(teamInput.trim())
+                      setTeamId(filteredTeams.exactNameMatch?.id ?? teamInput.trim())
                       setTeamInput('')
                       setTeamDropdownOpen(false)
                     } else if (e.key === 'Escape') {
@@ -382,7 +384,7 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
           <Field label="Tags">
             <div className="space-y-2">
               <div className="flex min-h-[32px] flex-wrap gap-1 rounded border border-gray-200 bg-white p-2">
-                {Array.from(yamlRoles).map((tag) => (
+                {Array.from(tags).map((tag) => (
                   <div
                     key={tag}
                     className="inline-flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700"
@@ -391,9 +393,9 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
                     <button
                       type="button"
                       onClick={() => {
-                        const next = new Set(yamlRoles)
+                        const next = new Set(tags)
                         next.delete(tag)
-                        setYamlRoles(next)
+                        setTags(next)
                       }}
                       className="text-blue-600 hover:text-blue-800"
                     >
@@ -401,7 +403,7 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
                     </button>
                   </div>
                 ))}
-                {yamlRoles.size === 0 && <span className="text-xs text-gray-400">No tags</span>}
+                {tags.size === 0 && <span className="text-xs text-gray-400">No tags</span>}
               </div>
               <div className="relative">
                 <input
@@ -419,8 +421,8 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault()
-                      if (tagInput.trim() && !yamlRoles.has(tagInput.trim())) {
-                        setYamlRoles((prev) => new Set([...prev, tagInput.trim()]))
+                      if (tagInput.trim() && !tags.has(tagInput.trim())) {
+                        setTags((prev) => new Set([...prev, tagInput.trim()]))
                         setTagInput('')
                       }
                     } else if (e.key === 'Escape') {
@@ -440,16 +442,16 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
                           key={tag}
                           type="button"
                           onClick={() => {
-                            if (!yamlRoles.has(tag)) {
-                              setYamlRoles((prev) => new Set([...prev, tag]))
+                            if (!tags.has(tag)) {
+                              setTags((prev) => new Set([...prev, tag]))
                             }
                             setTagInput('')
                             tagInputRef.current?.focus()
                           }}
                           className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-50 ${
-                            yamlRoles.has(tag) ? 'text-gray-400 line-through' : 'text-gray-700'
+                            tags.has(tag) ? 'text-gray-400 line-through' : 'text-gray-700'
                           }`}
-                          disabled={yamlRoles.has(tag)}
+                          disabled={tags.has(tag)}
                         >
                           {tag}
                         </button>
@@ -465,11 +467,11 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
                     )}
                     {tagInput.trim() &&
                       !allTags.includes(tagInput.trim()) &&
-                      !yamlRoles.has(tagInput.trim()) && (
+                      !tags.has(tagInput.trim()) && (
                         <button
                           type="button"
                           onClick={() => {
-                            setYamlRoles((prev) => new Set([...prev, tagInput.trim()]))
+                            setTags((prev) => new Set([...prev, tagInput.trim()]))
                             setTagInput('')
                             tagInputRef.current?.focus()
                           }}

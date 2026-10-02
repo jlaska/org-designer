@@ -21,6 +21,7 @@ export function makePerson(overrides: Partial<PersonRecord> = {}): PersonRecord 
     totalReports: 0,
     teamId: null,
     yamlRoles: [],
+    tags: [],
     ...overrides,
   }
 }

@@ -255,6 +255,7 @@ if (ORG_FLEET_PATH) {
       totalReports: u.totalReports ?? 0,
       teamId,
       yamlRoles: uidToYamlRoles.get(uid) ?? [],
+      tags: [],
     }
   }
 
@@ -292,6 +293,7 @@ if (ORG_FLEET_PATH) {
       totalReports: u.totalReports ?? 0,
       teamId: null,
       yamlRoles: [],
+      tags: [],
     }
   }
 

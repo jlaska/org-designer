@@ -432,12 +432,15 @@ export const useAppStore = create<AppState>()(
     },
 
     setViewRoot: (uid: string | null) => {
-      const { ui } = get()
+      const { ui, effectiveState } = get()
       if (uid === null) {
         set({ ui: { ...ui, viewRootUid: null, hiddenPeersOf: new Set() } })
         return
       }
-      set({ ui: { ...ui, viewRootUid: uid } })
+      if (!effectiveState?.people[uid]) return
+      const expandedNodes = new Set(ui.expandedNodes)
+      expandedNodes.add(uid)
+      set({ ui: { ...ui, viewRootUid: uid, expandedNodes } })
     },
 
     togglePeerVisibility: (uid: string) => {

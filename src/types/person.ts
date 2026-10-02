@@ -18,6 +18,7 @@ export interface PersonRecord {
   totalReports: number
   teamId: string | null
   yamlRoles: string[]
+  tags: string[]
 }
 
 export interface TeamRecord {

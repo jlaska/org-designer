@@ -234,10 +234,10 @@ export const PersonNode = memo(({ id, data }: PersonNodeProps) => {
 
           {/* Tags (up to 2 visible) */}
           {fields.tags &&
-            data.yamlRoles &&
-            data.yamlRoles.length > 0 &&
+            data.tags &&
+            data.tags.length > 0 &&
             (() => {
-              const uniqueTags = [...new Set(data.yamlRoles)]
+              const uniqueTags = [...new Set(data.tags)]
               return (
                 <div className="mt-1 flex flex-wrap items-center gap-1">
                   {uniqueTags.slice(0, 2).map((tag) => (
