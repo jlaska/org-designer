@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { useAppStore } from '@/store'
 import { uniqueJobRoles } from '@/lib/role-colors'
+import { TagComboBox } from '@/components/shared/TagComboBox'
 import type { AddPersonAction, EditPersonAction, OverlayAction } from '@/types/overlay'
 import type { PersonRecord } from '@/types/person'
 
@@ -33,11 +34,7 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
   const [tags, setTags] = useState<Set<string>>(new Set(editPerson?.tags ?? []))
   const [count, setCount] = useState(1)
   const [teamInput, setTeamInput] = useState('')
-  const [teamDropdownOpen, setTeamDropdownOpen] = useState(false)
   const [tagInput, setTagInput] = useState('')
-  const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
-  const teamInputRef = useRef<HTMLInputElement>(null)
-  const tagInputRef = useRef<HTMLInputElement>(null)
 
   const nameRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
@@ -92,14 +89,23 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
 
   const filteredTeams = useMemo(() => {
     const trimmed = teamInput.trim()
-    const matching = teams.filter((t) => t.name.toLowerCase().includes(trimmed.toLowerCase()))
+    const matching = teams.filter(
+      (t) => t.id !== teamId && t.name.toLowerCase().includes(trimmed.toLowerCase()),
+    )
     const exactNameMatch = teams.find((t) => t.name.toLowerCase() === trimmed.toLowerCase())
     return { matching, exactNameMatch, canCreate: trimmed.length > 0 && !exactNameMatch }
-  }, [teams, teamInput])
+  }, [teams, teamInput, teamId])
 
   const filteredTags = useMemo(() => {
-    return allTags.filter((t) => t.toLowerCase().includes(tagInput.toLowerCase()))
-  }, [allTags, tagInput])
+    const trimmed = tagInput.trim()
+    const matching = allTags.filter(
+      (t) => !tags.has(t) && t.toLowerCase().includes(trimmed.toLowerCase()),
+    )
+    return {
+      matching,
+      canCreate: trimmed.length > 0 && !allTags.includes(trimmed) && !tags.has(trimmed),
+    }
+  }, [allTags, tagInput, tags])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -289,201 +295,45 @@ export function AddPersonDialog({ managerUid, editPerson, onClose }: Props) {
           </div>
 
           <Field label="Team">
-            <div className="space-y-2">
-              <div className="flex min-h-[32px] flex-wrap gap-1 rounded border border-gray-200 bg-white p-2">
-                {teamId && (
-                  <div className="inline-flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-                    {teams.find((t) => t.id === teamId)?.name ?? teamId}
-                    <button
-                      type="button"
-                      onClick={() => setTeamId(null)}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                )}
-                {!teamId && <span className="text-xs text-gray-400">No team</span>}
-              </div>
-              <div className="relative">
-                <input
-                  ref={teamInputRef}
-                  type="text"
-                  value={teamInput}
-                  onChange={(e) => {
-                    setTeamInput(e.target.value)
-                    setTeamDropdownOpen(true)
-                  }}
-                  onFocus={() => setTeamDropdownOpen(true)}
-                  onBlur={() => {
-                    setTimeout(() => setTeamDropdownOpen(false), 150)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && teamInput.trim()) {
-                      e.preventDefault()
-                      setTeamId(filteredTeams.exactNameMatch?.id ?? teamInput.trim())
-                      setTeamInput('')
-                      setTeamDropdownOpen(false)
-                    } else if (e.key === 'Escape') {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      setTeamDropdownOpen(false)
-                    }
-                  }}
-                  placeholder="Search or create team..."
-                  className="input-base w-full text-xs"
-                />
-                {teamDropdownOpen && (
-                  <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-48 overflow-y-auto rounded border border-gray-200 bg-white shadow-md">
-                    {filteredTeams.matching.length > 0 ? (
-                      filteredTeams.matching.map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          onClick={() => {
-                            setTeamId(t.id)
-                            setTeamInput('')
-                            setTeamDropdownOpen(false)
-                          }}
-                          className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-50 ${
-                            teamId === t.id ? 'text-gray-400 line-through' : 'text-gray-700'
-                          }`}
-                          disabled={teamId === t.id}
-                        >
-                          {t.name}
-                        </button>
-                      ))
-                    ) : teamInput ? (
-                      <div className="px-3 py-2 text-xs text-gray-400">No matching teams</div>
-                    ) : (
-                      <div className="px-3 py-2 text-xs text-gray-500">
-                        {teams.length === 0
-                          ? 'No teams available'
-                          : `${teams.length} team${teams.length === 1 ? '' : 's'}`}
-                      </div>
-                    )}
-                    {filteredTeams.canCreate && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setTeamId(teamInput.trim())
-                          setTeamInput('')
-                          setTeamDropdownOpen(false)
-                        }}
-                        className="w-full px-3 py-2 text-left text-xs font-medium text-blue-600 hover:bg-blue-50"
-                      >
-                        Create "{teamInput.trim()}"
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+            <TagComboBox
+              items={
+                teamId
+                  ? [{ id: teamId, label: teams.find((t) => t.id === teamId)?.name ?? teamId }]
+                  : []
+              }
+              suggestions={filteredTeams.matching.map((t) => ({ id: t.id, label: t.name }))}
+              inputValue={teamInput}
+              onInputChange={setTeamInput}
+              onSelect={(opt) => setTeamId(opt.id)}
+              onCreate={(label) => setTeamId(filteredTeams.exactNameMatch?.id ?? label)}
+              onRemove={() => setTeamId(null)}
+              canCreate={filteredTeams.canCreate}
+              placeholder="Search or create team..."
+              totalCount={teams.length}
+              noun="team"
+            />
           </Field>
 
           <Field label="Tags">
-            <div className="space-y-2">
-              <div className="flex min-h-[32px] flex-wrap gap-1 rounded border border-gray-200 bg-white p-2">
-                {Array.from(tags).map((tag) => (
-                  <div
-                    key={tag}
-                    className="inline-flex items-center gap-1 rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700"
-                  >
-                    {tag}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const next = new Set(tags)
-                        next.delete(tag)
-                        setTags(next)
-                      }}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
-                {tags.size === 0 && <span className="text-xs text-gray-400">No tags</span>}
-              </div>
-              <div className="relative">
-                <input
-                  ref={tagInputRef}
-                  type="text"
-                  value={tagInput}
-                  onChange={(e) => {
-                    setTagInput(e.target.value)
-                    setTagDropdownOpen(true)
-                  }}
-                  onFocus={() => setTagDropdownOpen(true)}
-                  onBlur={() => {
-                    setTimeout(() => setTagDropdownOpen(false), 150)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      if (tagInput.trim() && !tags.has(tagInput.trim())) {
-                        setTags((prev) => new Set([...prev, tagInput.trim()]))
-                        setTagInput('')
-                      }
-                    } else if (e.key === 'Escape') {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      setTagDropdownOpen(false)
-                    }
-                  }}
-                  placeholder="Search or create tag..."
-                  className="input-base w-full text-xs"
-                />
-                {tagDropdownOpen && (
-                  <div className="absolute top-full right-0 left-0 z-50 mt-1 max-h-48 overflow-y-auto rounded border border-gray-200 bg-white shadow-md">
-                    {filteredTags.length > 0 ? (
-                      filteredTags.map((tag) => (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() => {
-                            if (!tags.has(tag)) {
-                              setTags((prev) => new Set([...prev, tag]))
-                            }
-                            setTagInput('')
-                            tagInputRef.current?.focus()
-                          }}
-                          className={`w-full px-3 py-2 text-left text-xs hover:bg-gray-50 ${
-                            tags.has(tag) ? 'text-gray-400 line-through' : 'text-gray-700'
-                          }`}
-                          disabled={tags.has(tag)}
-                        >
-                          {tag}
-                        </button>
-                      ))
-                    ) : tagInput ? (
-                      <div className="px-3 py-2 text-xs text-gray-400">No matching tags</div>
-                    ) : (
-                      <div className="px-3 py-2 text-xs text-gray-500">
-                        {allTags.length === 0
-                          ? 'No tags available'
-                          : `${allTags.length} tag${allTags.length === 1 ? '' : 's'}`}
-                      </div>
-                    )}
-                    {tagInput.trim() &&
-                      !allTags.includes(tagInput.trim()) &&
-                      !tags.has(tagInput.trim()) && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setTags((prev) => new Set([...prev, tagInput.trim()]))
-                            setTagInput('')
-                            tagInputRef.current?.focus()
-                          }}
-                          className="w-full px-3 py-2 text-left text-xs font-medium text-blue-600 hover:bg-blue-50"
-                        >
-                          Create "{tagInput.trim()}"
-                        </button>
-                      )}
-                  </div>
-                )}
-              </div>
-            </div>
+            <TagComboBox
+              items={Array.from(tags).map((t) => ({ id: t, label: t }))}
+              suggestions={filteredTags.matching.map((t) => ({ id: t, label: t }))}
+              inputValue={tagInput}
+              onInputChange={setTagInput}
+              onSelect={(opt) => setTags((prev) => new Set([...prev, opt.id]))}
+              onCreate={(label) => setTags((prev) => new Set([...prev, label]))}
+              onRemove={(id) =>
+                setTags((prev) => {
+                  const next = new Set(prev)
+                  next.delete(id)
+                  return next
+                })
+              }
+              canCreate={filteredTags.canCreate}
+              placeholder="Search or create tag..."
+              totalCount={allTags.length}
+              noun="tag"
+            />
           </Field>
         </div>
 
