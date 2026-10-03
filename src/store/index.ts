@@ -70,6 +70,7 @@ export interface CardFieldToggles {
   hireDate: boolean
   tenure: boolean
   team: boolean
+  tags: boolean
   reportCounts: boolean
 }
 
@@ -83,6 +84,7 @@ export type SortLayerBy =
   | 'jobTitle'
   | 'geo'
   | 'country'
+  | 'team'
   | 'directReports'
   | 'totalReports'
 
@@ -93,6 +95,7 @@ export interface ConfigState {
   snapToGrid: boolean
   sortLayerBy: SortLayerBy
   maxChildrenPerRow: MaxChildrenPerRow
+  showScopes: boolean
 }
 
 export interface UIState {
@@ -191,7 +194,8 @@ const defaultConfig: ConfigState = {
     city: false,
     hireDate: false,
     tenure: false,
-    team: false,
+    team: true,
+    tags: true,
     reportCounts: true,
   },
   density: 'default',
@@ -199,6 +203,7 @@ const defaultConfig: ConfigState = {
   snapToGrid: true,
   sortLayerBy: 'none',
   maxChildrenPerRow: 0,
+  showScopes: false,
 }
 
 function computeEffective(baseline: BaselineData, overlay: Overlay): EffectiveState {

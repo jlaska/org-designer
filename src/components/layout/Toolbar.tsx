@@ -114,7 +114,7 @@ export function Toolbar() {
       overlay,
     }
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-    download(URL.createObjectURL(blob), `org-${currentScenarioName}.json`)
+    download(URL.createObjectURL(blob), `${currentScenarioName}.json`)
     setScenarioMenuOpen(false)
   }
 

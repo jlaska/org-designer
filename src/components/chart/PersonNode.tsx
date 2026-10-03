@@ -80,6 +80,7 @@ export const PersonNode = memo(({ id, data }: PersonNodeProps) => {
     hireDate: false,
     tenure: false,
     team: false,
+    tags: true,
     reportCounts: true,
   }
   const direction = data.direction ?? 'TB'
@@ -230,6 +231,35 @@ export const PersonNode = memo(({ id, data }: PersonNodeProps) => {
               <span className="truncate">{data.teamName ?? data.teamId}</span>
             </div>
           )}
+
+          {/* Tags (up to 2 visible) */}
+          {fields.tags &&
+            data.yamlRoles &&
+            data.yamlRoles.length > 0 &&
+            (() => {
+              const uniqueTags = [...new Set(data.yamlRoles)]
+              return (
+                <div className="mt-1 flex flex-wrap items-center gap-1">
+                  {uniqueTags.slice(0, 2).map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700"
+                      title={tag}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                  {uniqueTags.length > 2 && (
+                    <span
+                      className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700"
+                      title={uniqueTags.slice(2).join(', ')}
+                    >
+                      +{uniqueTags.length - 2}
+                    </span>
+                  )}
+                </div>
+              )
+            })()}
 
           {/* Report counts — managers only */}
           {fields.reportCounts && data.isManager && (
@@ -406,15 +436,13 @@ function ContextMenuDropdown({
         Add new report
       </button>
 
-      {isPlaceholder && (
-        <button
-          className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
-          onClick={onEditReport}
-        >
-          <Pencil className="h-3 w-3 text-gray-400" />
-          Edit card
-        </button>
-      )}
+      <button
+        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50"
+        onClick={onEditReport}
+      >
+        <Pencil className="h-3 w-3 text-gray-400" />
+        {isPlaceholder ? 'Edit card' : 'Edit'}
+      </button>
 
       {data.managerUid !== null && (
         <button

@@ -113,6 +113,11 @@ export function ConfigPanel() {
         checked={config.cardFields.team}
         onChange={(v) => setCardFields({ team: v })}
       />
+      <Toggle
+        label="Tags"
+        checked={config.cardFields.tags}
+        onChange={(v) => setCardFields({ tags: v })}
+      />
 
       <SectionHeader label="Card Density" />
       <SegmentControl<CardDensity>
@@ -148,6 +153,7 @@ export function ConfigPanel() {
         <option value="jobTitle">Job Title</option>
         <option value="geo">Geo</option>
         <option value="country">Country</option>
+        <option value="team">Team</option>
         <option value="directReports">Direct Reports</option>
         <option value="totalReports">Total Reports</option>
       </select>

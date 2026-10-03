@@ -30,6 +30,7 @@ const FIELD_ROW_HEIGHT = 18
 export function computeNodeHeight(
   cardFields?: ConfigState['cardFields'],
   hasAnyTeam = true,
+  hasTags = true,
 ): number {
   if (!cardFields) return NODE_HEIGHT
   const fieldCount = [
@@ -40,13 +41,14 @@ export function computeNodeHeight(
     cardFields.hireDate,
     cardFields.tenure,
     cardFields.team && hasAnyTeam,
+    cardFields.tags && hasTags,
     cardFields.reportCounts,
   ].filter(Boolean).length
   return NODE_HEIGHT_BASE + fieldCount * FIELD_ROW_HEIGHT
 }
 
-export function getNodeDims(config?: ConfigState, hasAnyTeam = true) {
-  return { w: NODE_WIDTH, h: computeNodeHeight(config?.cardFields, hasAnyTeam) }
+export function getNodeDims(config?: ConfigState, hasAnyTeam = true, hasTags = true) {
+  return { w: NODE_WIDTH, h: computeNodeHeight(config?.cardFields, hasAnyTeam, hasTags) }
 }
 
 export interface OrgTreeNode {
@@ -99,7 +101,8 @@ export function computeLayout(
   const direction = config?.direction ?? 'TB'
   const cardFields = config?.cardFields
   const hasAnyTeam = Object.values(state.people).some((p) => !!p.teamId)
-  const nodeHeight = computeNodeHeight(cardFields, hasAnyTeam)
+  const hasTags = Object.values(state.people).some((p) => p.yamlRoles && p.yamlRoles.length > 0)
+  const nodeHeight = computeNodeHeight(cardFields, hasAnyTeam, hasTags)
 
   const gap = DENSITY_GAP[density]
   const rankGap = DENSITY_RANKSEP[density]
@@ -215,6 +218,11 @@ export function computeLayout(
       }
       if (sortBy === 'totalReports') {
         return (state.people[b]?.totalReports ?? 0) - (state.people[a]?.totalReports ?? 0)
+      }
+      if (sortBy === 'team') {
+        const aTeam = state.people[a]?.teamId ?? ''
+        const bTeam = state.people[b]?.teamId ?? ''
+        return String(aTeam).localeCompare(String(bTeam))
       }
       const field = SORT_FIELD[sortBy]
       const va = String(state.people[a]?.[field] ?? '')
