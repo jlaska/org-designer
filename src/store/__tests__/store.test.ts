@@ -292,3 +292,72 @@ describe('multi-edit via pushActions', () => {
     expect(updated.cn).toBe(original.cn)
   })
 })
+
+describe('loadScenarioFromJson', () => {
+  it('applies overlay and updates effectiveState', () => {
+    const scenario = {
+      name: 'test-scenario',
+      overlay: {
+        actions: [
+          {
+            type: 'move' as const,
+            uid: 'vp1',
+            fromManagerUid: 'ceo',
+            toManagerUid: 'vp2',
+            moveSubtree: true,
+            timestamp: '',
+          },
+        ],
+      },
+    }
+    useAppStore.getState().loadScenarioFromJson(scenario)
+    const state = useAppStore.getState()
+    expect(state.currentScenarioName).toBe('test-scenario')
+    expect(state.overlay.actions).toHaveLength(1)
+    expect(state.effectiveState!.people['vp1'].managerUid).toBe('vp2')
+  })
+
+  it('resets undo/redo stacks', () => {
+    const action = {
+      type: 'move' as const,
+      uid: 'ic1',
+      fromManagerUid: 'vp1',
+      toManagerUid: 'vp2',
+      moveSubtree: true,
+      timestamp: '',
+    }
+    useAppStore.getState().pushAction(action)
+    expect(useAppStore.getState().undoStack).toHaveLength(1)
+
+    useAppStore.getState().loadScenarioFromJson({ name: 'fresh', overlay: emptyOverlay() })
+    expect(useAppStore.getState().undoStack).toHaveLength(0)
+    expect(useAppStore.getState().redoStack).toHaveLength(0)
+  })
+
+  it('defaults name to "imported" when absent', () => {
+    useAppStore.getState().loadScenarioFromJson({ overlay: emptyOverlay() })
+    expect(useAppStore.getState().currentScenarioName).toBe('imported')
+  })
+
+  it('navigates to the LCA of affected nodes', () => {
+    const scenario = {
+      name: 'nav-test',
+      overlay: {
+        actions: [
+          {
+            type: 'move' as const,
+            uid: 'ic1',
+            fromManagerUid: 'vp1',
+            toManagerUid: 'mgr1',
+            moveSubtree: true,
+            timestamp: '',
+          },
+        ],
+      },
+    }
+    useAppStore.getState().loadScenarioFromJson(scenario)
+    const state = useAppStore.getState()
+    expect(state.ui.selectedNodeId).toBe('vp1')
+    expect(state.ui.expandedNodes.has('vp1')).toBe(true)
+  })
+})

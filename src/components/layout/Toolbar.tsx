@@ -130,7 +130,7 @@ export function Toolbar() {
   }
 
   const handleLoadFromServer = (name: string) => {
-    void loadScenario(name)
+    loadScenario(name).catch((err) => alert(err.message))
     setScenarioMenuOpen(false)
     setShowingServerList(false)
   }

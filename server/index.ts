@@ -80,8 +80,8 @@ app.delete('/api/scenarios/:name', (req, res) => {
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 function sanitizeName(name: string): string {
-  // Allow alphanumeric, hyphens, underscores — no path traversal
-  return name.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 100)
+  // Allow alphanumeric, hyphens, underscores, spaces — no path traversal
+  return name.replace(/[^a-zA-Z0-9_ -]/g, '-').slice(0, 100)
 }
 
 const PORT = 3001

@@ -246,7 +246,15 @@ export const useAppStore = create<AppState>()(
       const overlay: Overlay = scenario.overlay ?? emptyOverlay()
       const { baseline } = get()
       const effectiveState = baseline ? computeEffective(baseline, overlay) : null
-      set({ overlay, effectiveState, currentScenarioName: name, undoStack: [], redoStack: [] })
+      const lcaUid = baseline ? findOverlayLca(overlay, baseline.people) : null
+      set({
+        overlay,
+        effectiveState,
+        currentScenarioName: name,
+        undoStack: [],
+        redoStack: [],
+      })
+      if (lcaUid) get().navigateToNode(lcaUid)
     },
 
     loadScenarioFromJson: (scenario: { name?: string; overlay?: Overlay }) => {
