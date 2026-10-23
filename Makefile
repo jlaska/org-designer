@@ -1,4 +1,6 @@
-.PHONY: help deps dev import fetch-users build clean clean-baseline check lint lint-fix format format-check test test-watch test-coverage ci
+.PHONY: help deps dev import fetch-users fetch-rh build clean clean-baseline check lint lint-fix format format-check test test-watch test-coverage ci
+
+RH_LDAP_ROOT ?= rvokal
 
 LDAPSEARCH ?= $(shell which ldapsearch)
 LDAP_HOST  ?= ldaps://ldap.example.com
@@ -40,6 +42,12 @@ data/all_users.json: ## Fetch from LDAP and enrich (requires LDAP access + ldap-
 fetch-users: ## Fetch LDAP data → data/all_users.json (requires LDAP access + ldap-utils)
 	@rm -f data/all_users.json
 	$(MAKE) data/all_users.json
+
+fetch-rh: ## Fetch Red Hat LDAP → data/all_users.json using Python (requires VPN + kinit; set RH_LDAP_ROOT to override root uid)
+	@mkdir -p data
+	uvx --with ldap3 --with gssapi python scripts/rh_ldap_import.py --root $(RH_LDAP_ROOT)
+	@rm -f data/baseline.json
+	$(MAKE) data/baseline.json
 
 build: data/baseline.json ## Build for production
 	npm run build
